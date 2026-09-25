@@ -2,5 +2,6 @@
 {
     public interface IWeatherForecastService
     {
+        Task<IEnumerable<WeatherForecast>> GetWeatherForecast();
     }
 }
