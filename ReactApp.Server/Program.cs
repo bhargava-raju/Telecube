@@ -12,6 +12,8 @@ namespace ReactApp.Server
             // Add services to the container.
 
             builder.Services.AddControllers();
+            builder.Services.AddEndpointsApiExplorer(); // Required for minimal APIs / mapping endpoints
+            builder.Services.AddSwaggerGen();
 
             builder.Services.AddTransient<IWeatherForecastService, WeatherForecastService>();
             builder.Services.AddTransient<IWeatherForecastRepository, WeatherForecastRepository>();
@@ -27,7 +29,10 @@ namespace ReactApp.Server
             // Configure the HTTP request pipeline.
             if (app.Environment.IsDevelopment())
             {
-                app.MapOpenApi();   
+                app.MapOpenApi();
+                app.UseSwagger();   
+                app.UseSwaggerUI(); 
+
             }
 
             app.UseHttpsRedirection();
