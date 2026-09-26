@@ -1,4 +1,4 @@
-namespace Telecube.Server
+namespace Telecube.Gateway
 {
     public class WeatherForecast
     {

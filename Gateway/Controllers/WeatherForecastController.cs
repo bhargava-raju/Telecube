@@ -1,6 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
 
-namespace Telecube.Server.Controllers
+namespace Telecube.Gateway.Controllers
 {
     [ApiController]
     [Route("[controller]")]

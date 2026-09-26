@@ -1,5 +1,5 @@
 
-namespace Telecube.Server
+namespace Telecube.Gateway
 {
     public class Program
     {

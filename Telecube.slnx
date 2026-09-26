@@ -1,7 +1,7 @@
 <Solution>
-  <Project Path="Telecube/telecube.client/telecube.client.esproj">
+  <Project Path="clients/storefront/storefront.esproj">
     <Build />
     <Deploy />
   </Project>
-  <Project Path="Telecube/Telecube.Server/Telecube.Gateway.csproj" />
+  <Project Path="Gateway/Telecube.Gateway.csproj" />
 </Solution>
