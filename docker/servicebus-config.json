@@ -1,0 +1,14 @@
+{
+  "UserConfig": {
+    "Namespaces": [
+      {
+        "Name": "telecube-servicebus-emulator",
+        "Queues": [],
+        "Topics": []
+      }
+    ],
+    "Logging": {
+      "Type": "File"
+    }
+  }
+}

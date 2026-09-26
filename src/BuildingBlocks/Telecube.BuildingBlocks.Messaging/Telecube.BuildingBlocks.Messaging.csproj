@@ -1,0 +1,20 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="MassTransit" Version="9.2.2" />
+    <PackageReference Include="MassTransit.Azure.ServiceBus.Core" Version="9.2.2" />
+    <PackageReference Include="MassTransit.EntityFrameworkCore" Version="9.2.2" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Telecube.BuildingBlocks.Common\Telecube.BuildingBlocks.Common.csproj" />
+    <ProjectReference Include="..\Telecube.Contracts\Telecube.Contracts.csproj" />
+  </ItemGroup>
+
+</Project>

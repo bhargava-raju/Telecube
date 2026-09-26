@@ -1,0 +1,49 @@
+name: CI
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+    branches: [master]
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "10.0.x"
+
+      - name: Restore
+        run: dotnet restore Telecube.slnx
+
+      - name: Build
+        run: dotnet build Telecube.slnx --no-restore --configuration Release
+
+      # TODO: no test projects exist yet — add one (e.g. Telecube.BuildingBlocks.Common.UnitTests)
+      # and switch this to `dotnet test Telecube.slnx --no-build --configuration Release`.
+      - name: Test
+        run: echo "No test projects yet — see TODO above."
+
+      - name: Check for vulnerable NuGet packages
+        run: dotnet list Telecube.slnx package --vulnerable --include-transitive
+
+  security-scan:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # Filesystem scan for now — switch to an image scan once services have Dockerfiles (Phase 4).
+      - name: Trivy filesystem scan
+        uses: aquasecurity/trivy-action@master
+        with:
+          scan-type: "fs"
+          scan-ref: "."
+          severity: "CRITICAL,HIGH"

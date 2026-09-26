@@ -1,0 +1,58 @@
+services:
+  sqlserver:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    environment:
+      ACCEPT_EULA: "Y"
+      # TODO: move this to a .env file / user secret instead of hardcoding for real use
+      MSSQL_SA_PASSWORD: "Telecube_Dev_Pa55!"
+    ports:
+      - "1433:1433"
+    volumes:
+      - sqlserver-data:/var/opt/mssql
+
+  redis:
+    image: redis:7
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+
+  # The Service Bus emulator needs a companion SQL Edge instance for its own metadata store.
+  servicebus-sql-edge:
+    image: mcr.microsoft.com/azure-sql-edge:latest
+    environment:
+      ACCEPT_EULA: "Y"
+      MSSQL_SA_PASSWORD: "Telecube_Dev_Pa55!"
+
+  servicebus-emulator:
+    image: mcr.microsoft.com/azure-messaging/servicebus-emulator:latest
+    environment:
+      ACCEPT_EULA: "Y"
+      SQL_SERVER: servicebus-sql-edge
+      MSSQL_SA_PASSWORD: "Telecube_Dev_Pa55!"
+    ports:
+      - "5672:5672"
+    volumes:
+      # TODO: author this file — defines the queues/topics/subscriptions the emulator starts with
+      # (e.g. a "product-events" topic once Phase 1's Catalog service publishes ProductCreated).
+      - ./servicebus-config.json:/ServiceBus_Emulator/ConfigFiles/Config.json
+    depends_on:
+      - servicebus-sql-edge
+
+  seq:
+    image: datalust/seq:latest
+    environment:
+      ACCEPT_EULA: "Y"
+    ports:
+      - "5341:80" # Seq UI
+
+  jaeger:
+    image: jaegertracing/all-in-one:latest
+    ports:
+      - "16686:16686" # Jaeger UI
+      - "4317:4317"   # OTLP gRPC receiver
+      - "4318:4318"   # OTLP HTTP receiver
+
+volumes:
+  sqlserver-data:
+  redis-data:

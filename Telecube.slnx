@@ -3,5 +3,10 @@
     <Build />
     <Deploy />
   </Project>
+  <Project Path="src/BuildingBlocks/Telecube.BuildingBlocks.Common/Telecube.BuildingBlocks.Common.csproj" />
   <Project Path="Gateway/Telecube.Gateway.csproj" />
+  <Project Path="src/BuildingBlocks/Telecube.BuildingBlocks.Observability/Telecube.BuildingBlocks.Observability.csproj" />
+  <Project Path="src/BuildingBlocks/Telecube.BuildingBlocks.Web/Telecube.BuildingBlocks.Web.csproj" />
+  <Project Path="src/BuildingBlocks/Telecube.Contracts/Telecube.Contracts.csproj" />
+  <Project Path="src/BuildingBlocks/Telecube.BuildingBlocks.Messaging/Telecube.BuildingBlocks.Messaging.csproj" />
 </Solution>
