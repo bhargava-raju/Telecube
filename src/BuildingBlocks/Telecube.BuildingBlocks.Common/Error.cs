@@ -1,12 +1,17 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
+﻿namespace Telecube.BuildingBlocks.Common;
 
-namespace Telecube.BuildingBlocks.Common
+public enum ErrorType
 {
-    public class Error
-    {
-    }
+    Failure,
+    NotFound,
+    Validation,
+    Conflict
+}
 
-
+public sealed record Error(string Code, string Message, ErrorType Type)
+{
+    public static readonly Error None = new("", "", ErrorType.Failure);    
+    public static Error NotFound(string code, string message) => new(code, message, ErrorType.NotFound);
+    public static Error Validation(string code, string message) => new(code, message, ErrorType.Validation);
+    public static Error Conflict(string code, string message) => new(code, message, ErrorType.Conflict);
 }

@@ -1,10 +1,16 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
+﻿namespace Telecube.BuildingBlocks.Common;
 
-namespace Telecube.BuildingBlocks.Common
+public abstract class Entity
 {
-    public class Entity
+    public Guid Id { get; protected set; }
+
+    public override bool Equals(object? obj)
     {
+        return obj is Entity entity && Id.Equals(entity.Id);
+    }
+
+    public override int GetHashCode()
+    {
+        return Id.GetHashCode();
     }
 }
