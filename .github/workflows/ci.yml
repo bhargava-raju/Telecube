@@ -19,19 +19,51 @@ jobs:
         with:
           dotnet-version: "10.0.x"
 
-      - name: Restore
+      - name: Restore app solution
         run: dotnet restore Telecube.slnx
 
-      - name: Build
+      - name: Build app solution
         run: dotnet build Telecube.slnx --no-restore --configuration Release
 
-      # TODO: no test projects exist yet — add one (e.g. Telecube.BuildingBlocks.Common.UnitTests)
-      # and switch this to `dotnet test Telecube.slnx --no-build --configuration Release`.
+      # Tests live in a separate solution (Telecube.Tests.slnx) for separation from the app
+      # solution; its projects reference the app projects directly, so this also builds those.
+      - name: Restore test solution
+        run: dotnet restore Telecube.Tests.slnx
+
+      - name: Build test solution
+        run: dotnet build Telecube.Tests.slnx --no-restore --configuration Release
+
       - name: Test
-        run: echo "No test projects yet — see TODO above."
+        run: dotnet test Telecube.Tests.slnx --no-build --configuration Release
 
       - name: Check for vulnerable NuGet packages
         run: dotnet list Telecube.slnx package --vulnerable --include-transitive
+
+  storefront-test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20.x"
+          cache: "npm"
+          cache-dependency-path: clients/storefront/package-lock.json
+
+      - name: Install dependencies
+        working-directory: clients/storefront
+        run: npm ci
+
+      - name: Lint
+        working-directory: clients/storefront
+        run: npm run lint
+
+      - name: Test
+        working-directory: clients/storefront
+        run: npm run test
 
   security-scan:
     runs-on: ubuntu-latest

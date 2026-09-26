@@ -1,0 +1,8 @@
+<Solution>
+  <Project Path="tests/Telecube.BuildingBlocks.Common.UnitTests/Telecube.BuildingBlocks.Common.UnitTests.csproj" />
+  <Project Path="tests/Telecube.BuildingBlocks.Observability.UnitTests/Telecube.BuildingBlocks.Observability.UnitTests.csproj" />
+  <Project Path="tests/Telecube.BuildingBlocks.Web.UnitTests/Telecube.BuildingBlocks.Web.UnitTests.csproj" />
+  <Project Path="tests/Telecube.BuildingBlocks.Messaging.UnitTests/Telecube.BuildingBlocks.Messaging.UnitTests.csproj" />
+  <Project Path="tests/Telecube.Contracts.UnitTests/Telecube.Contracts.UnitTests.csproj" />
+  <Project Path="tests/Telecube.Gateway.IntegrationTests/Telecube.Gateway.IntegrationTests.csproj" />
+</Solution>
