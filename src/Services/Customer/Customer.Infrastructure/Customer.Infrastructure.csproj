@@ -13,6 +13,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\..\..\BuildingBlocks\Telecube.BuildingBlocks.Messaging\Telecube.BuildingBlocks.Messaging.csproj" />
     <ProjectReference Include="..\Customer.Application\Customer.Application.csproj" />
     <ProjectReference Include="..\..\..\BuildingBlocks\Telecube.Contracts\Telecube.Contracts.csproj" />
   </ItemGroup>

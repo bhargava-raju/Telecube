@@ -6,6 +6,5 @@ namespace Telecube.Contracts;
 public interface IIntegrationEvent
 {
     Guid EventId { get; }
-
     DateTimeOffset OccurredOn { get; }
 }

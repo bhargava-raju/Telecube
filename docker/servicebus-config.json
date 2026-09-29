@@ -4,7 +4,17 @@
       {
         "Name": "telecube-servicebus-emulator",
         "Queues": [],
-        "Topics": []
+        "Topics": [
+          {
+            "Name": "customer-updated",
+            "Properties": {
+              "DefaultMessageTimeToLive": "PT1H",
+              "DuplicateDetectionHistoryTimeWindow": "PT20S",
+              "RequiresDuplicateDetection": false
+            },
+            "Subscriptions": []
+          }
+        ]
       }
     ],
     "Logging": {
