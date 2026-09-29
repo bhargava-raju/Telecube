@@ -9,4 +9,8 @@
   <Project Path="src/BuildingBlocks/Telecube.BuildingBlocks.Web/Telecube.BuildingBlocks.Web.csproj" />
   <Project Path="src/BuildingBlocks/Telecube.Contracts/Telecube.Contracts.csproj" />
   <Project Path="src/BuildingBlocks/Telecube.BuildingBlocks.Messaging/Telecube.BuildingBlocks.Messaging.csproj" />
+  <Project Path="src/Services/Customer/Customer.Domain/Customer.Domain.csproj" />
+  <Project Path="src/Services/Customer/Customer.Application/Customer.Application.csproj" />
+  <Project Path="src/Services/Customer/Customer.Infrastructure/Customer.Infrastructure.csproj" />
+  <Project Path="src/Services/Customer/Customer.Api/Customer.Api.csproj" />
 </Solution>
