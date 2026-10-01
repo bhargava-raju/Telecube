@@ -32,6 +32,7 @@ services:
       MSSQL_SA_PASSWORD: "Telecube_Dev_Pa55!"
     ports:
       - "5672:5672"
+      - "5300:5300"
     volumes:
       # TODO: author this file — defines the queues/topics/subscriptions the emulator starts with
       # (e.g. a "product-events" topic once Phase 1's Catalog service publishes ProductCreated).

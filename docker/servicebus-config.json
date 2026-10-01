@@ -2,7 +2,7 @@
   "UserConfig": {
     "Namespaces": [
       {
-        "Name": "telecube-servicebus-emulator",
+        "Name": "sbemulatorns",
         "Queues": [],
         "Topics": [
           {
@@ -12,7 +12,19 @@
               "DuplicateDetectionHistoryTimeWindow": "PT20S",
               "RequiresDuplicateDetection": false
             },
-            "Subscriptions": []
+            "Subscriptions": [
+            {
+              "Name": "customer-updated-test",
+              "Properties": {
+                "DeadLetteringOnMessageExpiration": false,
+                "DefaultMessageTimeToLive": "PT1H",
+                "LockDuration": "PT1M",
+                "MaxDeliveryCount": 10,
+                "RequiresSession": false
+              },
+              "Rules": []
+            }
+]
           }
         ]
       }
