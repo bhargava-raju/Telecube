@@ -25,7 +25,7 @@ public sealed class CustomerRepository(ISqlConnectionFactory connectionFactory) 
         parameters.Add("EntraObjectId", customer.EntraObjectId, System.Data.DbType.String);
         parameters.Add("Email", customer.Email, System.Data.DbType.String);
         parameters.Add("DisplayName", customer.DisplayName, System.Data.DbType.String);
-        parameters.Add("Id", new Guid(), System.Data.DbType.Guid);
+        parameters.Add("Id", customer.Id, System.Data.DbType.Guid);
 
         return connection.ExecuteAsync("INSERT INTO Customer (Id, EntraObjectId, Email, DisplayName) VALUES (@Id, @EntraObjectId, @Email, @DisplayName)", parameters);
     }
