@@ -25,8 +25,9 @@ public sealed class CustomerRepository(ISqlConnectionFactory connectionFactory) 
         parameters.Add("EntraObjectId", customer.EntraObjectId, System.Data.DbType.String);
         parameters.Add("Email", customer.Email, System.Data.DbType.String);
         parameters.Add("DisplayName", customer.DisplayName, System.Data.DbType.String);
+        parameters.Add("Id", new Guid(), System.Data.DbType.Guid);
 
-        return connection.ExecuteAsync("INSERT INTO Customer (EntraObjectId, Email, DisplayName) VALUES (@EntraObjectId, @Email, @DisplayName)", parameters);
+        return connection.ExecuteAsync("INSERT INTO Customer (Id, EntraObjectId, Email, DisplayName) VALUES (@Id, @EntraObjectId, @Email, @DisplayName)", parameters);
     }
 
     public Task UpdateAsync(CustomerEntity customer, CancellationToken cancellationToken)

@@ -13,7 +13,7 @@ public class GetCustomerByEntraIdQueryHandler(ICustomerRepository customerReposi
         var customer = await customerRepository.GetByEntraObjectIdAsync(request.EntraObjectId, cancellationToken);
         if (customer == null)
         {
-            return Result<CustomerEntity>.Failure(new Error("Failure", "Customer not found", ErrorType.Failure));
+            return Result<CustomerEntity>.Failure(new Error("NotFound", "Customer not found", ErrorType.NotFound));
         }
         return Result<CustomerEntity>.Success(customer);       
     }
