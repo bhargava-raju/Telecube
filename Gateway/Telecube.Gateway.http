@@ -1,6 +1,2 @@
 @Telecube.Gateway_HostAddress = http://localhost:5167
 
-GET {{Telecube.Gateway_HostAddress}}/weatherforecast/
-Accept: application/json
-
-###
