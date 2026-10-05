@@ -34,7 +34,7 @@ jobs:
         run: dotnet build Telecube.Tests.slnx --no-restore --configuration Release
 
       - name: Test
-        run: dotnet test Telecube.Tests.slnx --no-build --configuration Release
+        run: dotnet test --solution Telecube.Tests.slnx --no-build --configuration Release
 
       - name: Check for vulnerable NuGet packages
         run: dotnet list Telecube.slnx package --vulnerable --include-transitive
