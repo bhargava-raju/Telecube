@@ -19,22 +19,14 @@ jobs:
         with:
           dotnet-version: "10.0.x"
 
-      - name: Restore app solution
+      - name: Restore
         run: dotnet restore Telecube.slnx
 
-      - name: Build app solution
+      - name: Build
         run: dotnet build Telecube.slnx --no-restore --configuration Release
 
-      # Tests live in a separate solution (Telecube.Tests.slnx) for separation from the app
-      # solution; its projects reference the app projects directly, so this also builds those.
-      - name: Restore test solution
-        run: dotnet restore Telecube.Tests.slnx
-
-      - name: Build test solution
-        run: dotnet build Telecube.Tests.slnx --no-restore --configuration Release
-
       - name: Test
-        run: dotnet test --solution Telecube.Tests.slnx --no-build --configuration Release
+        run: dotnet test --solution Telecube.slnx --no-build --configuration Release
 
       - name: Check for vulnerable NuGet packages
         run: dotnet list Telecube.slnx package --vulnerable --include-transitive
