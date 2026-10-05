@@ -1,0 +1,7 @@
+﻿{
+  CustomerId: Guid_1,
+  Email: ada@telecube.test,
+  DisplayName: Ada Lovelace,
+  EventId: Guid_2,
+  OccurredOn: DateTimeOffset_1
+}
