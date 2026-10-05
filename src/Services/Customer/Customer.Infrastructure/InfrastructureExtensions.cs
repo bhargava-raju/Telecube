@@ -1,4 +1,5 @@
 using Customer.Application.Abstractions;
+using Customer.Infrastructure.Messaging;
 using Customer.Infrastructure.Repositories;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -14,6 +15,7 @@ public static class InfrastructureExtensions
 
         services.AddSingleton<ISqlConnectionFactory>(new SqlConnectionFactory(connectionString));
         services.AddScoped<ICustomerRepository, CustomerRepository>();
+        services.AddScoped<IIntegrationEventPublisher, MassTransitIntegrationEventPublisher>();
 
         return services;
     }

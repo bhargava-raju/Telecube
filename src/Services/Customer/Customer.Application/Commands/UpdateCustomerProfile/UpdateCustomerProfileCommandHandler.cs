@@ -1,13 +1,11 @@
 using Customer.Application.Abstractions;
-using MassTransit;
-using MassTransit.Transports;
 using MediatR;
 using Telecube.BuildingBlocks.Common;
 using Telecube.Contracts;
 
 namespace Customer.Application.Commands.UpdateCustomerProfile;
 
-public class UpdateCustomerProfileCommandHandler(ICustomerRepository customerRepository, IPublishEndpoint publishEndpoint)
+public class UpdateCustomerProfileCommandHandler(ICustomerRepository customerRepository, IIntegrationEventPublisher integrationEventPublisher)
     : IRequestHandler<UpdateCustomerProfileCommand, Result>
 {
     public async Task<Result> Handle(UpdateCustomerProfileCommand request, CancellationToken cancellationToken)
@@ -27,7 +25,7 @@ public class UpdateCustomerProfileCommandHandler(ICustomerRepository customerRep
             }
 
             await customerRepository.UpdateAsync(existingCustomerResult, cancellationToken);
-            await publishEndpoint.Publish(new CustomerUpdated(existingCustomerResult.Id, request.Email, request.DisplayName), cancellationToken);
+            await integrationEventPublisher.PublishAsync(new CustomerUpdated(existingCustomerResult.Id, request.Email, request.DisplayName), cancellationToken);
             return Result.Success();
 
         }
