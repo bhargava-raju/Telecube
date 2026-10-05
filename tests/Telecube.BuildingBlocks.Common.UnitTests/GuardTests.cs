@@ -9,10 +9,13 @@ public class GuardTests
         object? value = null;
 
         // Act
-        Action act = () => Guard.AgainstNull(value, nameof(value));
+        var result = Guard.AgainstNull(value, nameof(value));
 
         // Assert
-        act.Should().Throw<ArgumentNullException>().WithParameterName(nameof(value));
+        result.IsFailure.Should().BeTrue();
+        result.Error.Type.Should().Be(ErrorType.Validation);
+        result.Error.Message.Should().Be($"Value cannot be null. Parameter name: {nameof(value)}");
+
     }
 
     [Fact]
@@ -22,10 +25,11 @@ public class GuardTests
         object value = new();
 
         // Act
-        Action act = () => Guard.AgainstNull(value, nameof(value));
+        var result = Guard.AgainstNull(value, nameof(value));
 
         // Assert
-        act.Should().NotThrow();
+        result.IsSuccess.Should().BeTrue();
+        result.Error.Should().Be(Error.None);
     }
 
     [Theory]
@@ -34,10 +38,12 @@ public class GuardTests
     public void AgainstNullOrEmpty_WhenValueIsNullOrEmpty_ThrowsArgumentException(string? value)
     {
         // Act
-        Action act = () => Guard.AgainstNullOrEmpty(value, nameof(value));
+        var result = Guard.AgainstNullOrEmpty(value, nameof(value));
 
         // Assert
-        act.Should().Throw<ArgumentException>().WithParameterName(nameof(value));
+        result.IsFailure.Should().BeTrue();
+        result.Error.Type.Should().Be(ErrorType.Validation);
+        result.Error.Message.Should().Be($"Value cannot be empty. Parameter name: {nameof(value)}");
     }
 
     [Fact]
@@ -47,9 +53,10 @@ public class GuardTests
         string value = "Hello, World!";
 
         // Act
-        Action act = () => Guard.AgainstNullOrEmpty(value, nameof(value));
+        var result = Guard.AgainstNullOrEmpty(value, nameof(value));
 
         // Assert
-        act.Should().NotThrow();
+        result.IsSuccess.Should().BeTrue();
+        result.Error.Should().Be(Error.None);
     }
 }

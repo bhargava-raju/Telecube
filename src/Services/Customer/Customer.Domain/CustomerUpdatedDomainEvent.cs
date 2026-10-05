@@ -7,6 +7,6 @@ namespace Customer.Domain
         public Guid Id { get; } = id;
         public string Email { get; } = email;
         public string DisplayName { get; } = displayName;
-        DateTimeOffset IDomainEvent.OccurredOn => DateTime.UtcNow;
+        public DateTimeOffset OccurredOn { get; } = DateTimeOffset.UtcNow;
     }
 }

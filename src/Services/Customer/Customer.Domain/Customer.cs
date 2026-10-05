@@ -9,9 +9,17 @@ public class Customer : AggregateRoot
     private Customer() { } 
     public static Result<Customer> Create(string entraObjectId, string email, string displayName)
     {
-        Guard.AgainstNullOrEmpty(entraObjectId, "EntraObjectId");
-        Guard.AgainstNullOrEmpty(email, "Email");
-        Guard.AgainstNullOrEmpty(displayName, "DisplayName");
+        var result = Guard.AgainstNullOrEmpty(entraObjectId, "EntraObjectId");
+        if (result.IsFailure)
+            return Result<Customer>.Failure(result.Error);
+
+        result = Guard.AgainstNullOrEmpty(email, "Email");
+        if (result.IsFailure)
+            return Result<Customer>.Failure(result.Error);
+
+        result = Guard.AgainstNullOrEmpty(displayName, "DisplayName");
+        if (result.IsFailure)
+            return Result<Customer>.Failure(result.Error);
 
         Customer customer = new()
         {
@@ -24,8 +32,13 @@ public class Customer : AggregateRoot
     }
     public Result UpdateProfile(string email, string displayName)
     {
-        Guard.AgainstNullOrEmpty(email, "Email");
-        Guard.AgainstNullOrEmpty(displayName, "DisplayName");
+        var result = Guard.AgainstNullOrEmpty(email, "Email");
+        if (result.IsFailure)
+            return Result.Failure(result.Error);
+
+        result = Guard.AgainstNullOrEmpty(displayName, "DisplayName");
+        if (result.IsFailure)
+            return Result.Failure(result.Error);
 
         Email = email;  
         DisplayName = displayName;

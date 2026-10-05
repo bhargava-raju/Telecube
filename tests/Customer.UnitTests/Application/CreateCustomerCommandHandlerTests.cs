@@ -67,7 +67,7 @@ public class CreateCustomerCommandHandlerTests
 
         // Assert
         result.IsFailure.Should().BeTrue();
-        result.Error.Type.Should().Be(ErrorType.Failure);
+        result.Error.Type.Should().Be(ErrorType.Validation);
 
         _repository.Verify(
             r => r.AddAsync(It.IsAny<CustomerEntity>(), It.IsAny<CancellationToken>()),

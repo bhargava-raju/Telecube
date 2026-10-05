@@ -2,20 +2,24 @@
 {
     public static class Guard
     {
-        public static void AgainstNull(object? value, string paramName)
+        public static Result AgainstNull(object? value, string paramName)
         {
             if(value is null)
             {
-                throw new ArgumentNullException(paramName);
+                return Result.Failure(Error.Validation("Validation.Required", $"Value cannot be null. Parameter name: {paramName}"));
             }
+
+            return Result.Success();
         }
 
-        public static void AgainstNullOrEmpty(string? value, string paramName)
+        public static Result AgainstNullOrEmpty(string? value, string paramName)
         {
             if(string.IsNullOrEmpty(value))
             {
-                throw new ArgumentException("Value cannot be empty.", paramName);
+                return Result.Failure(Error.Validation("Validation.Required", $"Value cannot be empty. Parameter name: {paramName}"));
             }
+
+            return Result.Success();
         }
     }
 }
