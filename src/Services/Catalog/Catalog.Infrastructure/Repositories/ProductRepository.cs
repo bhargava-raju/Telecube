@@ -29,7 +29,7 @@ public sealed class ProductRepository(ISqlConnectionFactory connectionFactory) :
         throw new NotImplementedException();
     }
 
-    // TODO: Save the product's name, description and price to its existing row.
+    // TODO: Save the product's category, name, description and price to its existing row.
     public Task UpdateAsync(Product product, CancellationToken cancellationToken)
     {
         throw new NotImplementedException();

@@ -1,0 +1,1 @@
+-- TODO: Create the Category table with an id primary key, a unique name and a description column.

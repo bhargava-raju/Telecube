@@ -1,0 +1,1385 @@
+diff --git a/Telecube.slnx b/Telecube.slnx
+index 3baa703..9e7b69e 100644
+--- a/Telecube.slnx
++++ b/Telecube.slnx
+@@ -7,6 +7,12 @@
+     <Project Path="src/BuildingBlocks/Telecube.Contracts/Telecube.Contracts.csproj" />
+   </Folder>
+   <Folder Name="/Services/" />
++  <Folder Name="/Services/Catalog/">
++    <Project Path="src/Services/Catalog/Catalog.Api/Catalog.Api.csproj" />
++    <Project Path="src/Services/Catalog/Catalog.Application/Catalog.Application.csproj" />
++    <Project Path="src/Services/Catalog/Catalog.Domain/Catalog.Domain.csproj" />
++    <Project Path="src/Services/Catalog/Catalog.Infrastructure/Catalog.Infrastructure.csproj" />
++  </Folder>
+   <Folder Name="/Services/Customer/">
+     <Project Path="src/Services/Customer/Customer.Api/Customer.Api.csproj" />
+     <Project Path="src/Services/Customer/Customer.Application/Customer.Application.csproj" />
+@@ -14,6 +20,7 @@
+     <Project Path="src/Services/Customer/Customer.Infrastructure/Customer.Infrastructure.csproj" />
+   </Folder>
+   <Folder Name="/tests/">
++    <Project Path="tests/Catalog.UnitTests/Catalog.UnitTests.csproj" />
+     <Project Path="tests/Customer.UnitTests/Customer.UnitTests.csproj" />
+     <Project Path="tests/Telecube.ArchitectureTests/Telecube.ArchitectureTests.csproj" />
+     <Project Path="tests/Telecube.BuildingBlocks.Common.UnitTests/Telecube.BuildingBlocks.Common.UnitTests.csproj" />
+diff --git a/docker/servicebus-config.json b/docker/servicebus-config.json
+index 9f5eb73..4c4d162 100644
+--- a/docker/servicebus-config.json
++++ b/docker/servicebus-config.json
+@@ -25,6 +25,69 @@
+               "Rules": []
+             }
+ ]
++          },
++          {
++            "Name": "product-created",
++            "Properties": {
++              "DefaultMessageTimeToLive": "PT1H",
++              "DuplicateDetectionHistoryTimeWindow": "PT20S",
++              "RequiresDuplicateDetection": false
++            },
++            "Subscriptions": [
++              {
++                "Name": "product-created-test",
++                "Properties": {
++                  "DeadLetteringOnMessageExpiration": false,
++                  "DefaultMessageTimeToLive": "PT1H",
++                  "LockDuration": "PT1M",
++                  "MaxDeliveryCount": 10,
++                  "RequiresSession": false
++                },
++                "Rules": []
++              }
++            ]
++          },
++          {
++            "Name": "product-updated",
++            "Properties": {
++              "DefaultMessageTimeToLive": "PT1H",
++              "DuplicateDetectionHistoryTimeWindow": "PT20S",
++              "RequiresDuplicateDetection": false
++            },
++            "Subscriptions": [
++              {
++                "Name": "product-updated-test",
++                "Properties": {
++                  "DeadLetteringOnMessageExpiration": false,
++                  "DefaultMessageTimeToLive": "PT1H",
++                  "LockDuration": "PT1M",
++                  "MaxDeliveryCount": 10,
++                  "RequiresSession": false
++                },
++                "Rules": []
++              }
++            ]
++          },
++          {
++            "Name": "product-deleted",
++            "Properties": {
++              "DefaultMessageTimeToLive": "PT1H",
++              "DuplicateDetectionHistoryTimeWindow": "PT20S",
++              "RequiresDuplicateDetection": false
++            },
++            "Subscriptions": [
++              {
++                "Name": "product-deleted-test",
++                "Properties": {
++                  "DeadLetteringOnMessageExpiration": false,
++                  "DefaultMessageTimeToLive": "PT1H",
++                  "LockDuration": "PT1M",
++                  "MaxDeliveryCount": 10,
++                  "RequiresSession": false
++                },
++                "Rules": []
++              }
++            ]
+           }
+         ]
+       }
+diff --git a/src/BuildingBlocks/Telecube.Contracts/ProductCreated.cs b/src/BuildingBlocks/Telecube.Contracts/ProductCreated.cs
+new file mode 100644
+index 0000000..76fd7de
+--- /dev/null
++++ b/src/BuildingBlocks/Telecube.Contracts/ProductCreated.cs
+@@ -0,0 +1,7 @@
++namespace Telecube.Contracts;
++
++public sealed record ProductCreated(Guid ProductId, Guid CategoryId, string Sku, string Name, string Description, decimal Price) : IIntegrationEvent
++{
++    public Guid EventId { get; init; } = Guid.NewGuid();
++    public DateTimeOffset OccurredOn { get; init; } = DateTimeOffset.UtcNow;
++}
+diff --git a/src/BuildingBlocks/Telecube.Contracts/ProductDeleted.cs b/src/BuildingBlocks/Telecube.Contracts/ProductDeleted.cs
+new file mode 100644
+index 0000000..dccef39
+--- /dev/null
++++ b/src/BuildingBlocks/Telecube.Contracts/ProductDeleted.cs
+@@ -0,0 +1,7 @@
++namespace Telecube.Contracts;
++
++public sealed record ProductDeleted(Guid ProductId) : IIntegrationEvent
++{
++    public Guid EventId { get; init; } = Guid.NewGuid();
++    public DateTimeOffset OccurredOn { get; init; } = DateTimeOffset.UtcNow;
++}
+diff --git a/src/BuildingBlocks/Telecube.Contracts/ProductUpdated.cs b/src/BuildingBlocks/Telecube.Contracts/ProductUpdated.cs
+new file mode 100644
+index 0000000..0e215aa
+--- /dev/null
++++ b/src/BuildingBlocks/Telecube.Contracts/ProductUpdated.cs
+@@ -0,0 +1,7 @@
++namespace Telecube.Contracts;
++
++public sealed record ProductUpdated(Guid ProductId, Guid CategoryId, string Sku, string Name, string Description, decimal Price) : IIntegrationEvent
++{
++    public Guid EventId { get; init; } = Guid.NewGuid();
++    public DateTimeOffset OccurredOn { get; init; } = DateTimeOffset.UtcNow;
++}
+diff --git a/src/Services/Catalog/Catalog.Api/Catalog.Api.csproj b/src/Services/Catalog/Catalog.Api/Catalog.Api.csproj
+new file mode 100644
+index 0000000..6812ab1
+--- /dev/null
++++ b/src/Services/Catalog/Catalog.Api/Catalog.Api.csproj
+@@ -0,0 +1,21 @@
++<Project Sdk="Microsoft.NET.Sdk.Web">
++
++  <PropertyGroup>
++    <TargetFramework>net10.0</TargetFramework>
++    <ImplicitUsings>enable</ImplicitUsings>
++    <Nullable>enable</Nullable>
++  </PropertyGroup>
++
++  <ItemGroup>
++    <PackageReference Include="Swashbuckle.AspNetCore" Version="7.2.0" />
++  </ItemGroup>
++
++  <ItemGroup>
++    <ProjectReference Include="..\Catalog.Application\Catalog.Application.csproj" />
++    <ProjectReference Include="..\Catalog.Infrastructure\Catalog.Infrastructure.csproj" />
++    <ProjectReference Include="..\..\..\BuildingBlocks\Telecube.BuildingBlocks.Web\Telecube.BuildingBlocks.Web.csproj" />
++    <ProjectReference Include="..\..\..\BuildingBlocks\Telecube.BuildingBlocks.Observability\Telecube.BuildingBlocks.Observability.csproj" />
++    <ProjectReference Include="..\..\..\BuildingBlocks\Telecube.BuildingBlocks.Messaging\Telecube.BuildingBlocks.Messaging.csproj" />
++  </ItemGroup>
++
++</Project>
+diff --git a/src/Services/Catalog/Catalog.Api/Contracts/CategoryResponse.cs b/src/Services/Catalog/Catalog.Api/Contracts/CategoryResponse.cs
+new file mode 100644
+index 0000000..3b232b4
+--- /dev/null
++++ b/src/Services/Catalog/Catalog.Api/Contracts/CategoryResponse.cs
+@@ -0,0 +1,3 @@
++namespace Catalog.Api.Contracts;
++
++public record CategoryResponse(Guid Id, string Name, string Description);
+diff --git a/src/Services/Catalog/Catalog.Api/Contracts/CreateCategoryRequest.cs b/src/Services/Catalog/Catalog.Api/Contracts/CreateCategoryRequest.cs
+new file mode 100644
+index 0000000..76a7951
+--- /dev/null
++++ b/src/Services/Catalog/Catalog.Api/Contracts/CreateCategoryRequest.cs
+@@ -0,0 +1,3 @@
++namespace Catalog.Api.Contracts;
++
++public record CreateCategoryRequest(string Name, string Description);
+diff --git a/src/Services/Catalog/Catalog.Api/Contracts/CreateProductRequest.cs b/src/Services/Catalog/Catalog.Api/Contracts/CreateProductRequest.cs
+new file mode 100644
+index 0000000..ca37df5
+--- /dev/null
++++ b/src/Services/Catalog/Catalog.Api/Contracts/CreateProductRequest.cs
+@@ -0,0 +1,3 @@
++namespace Catalog.Api.Contracts;
++
++public record CreateProductRequest(Guid CategoryId, string Sku, string Name, string Description, decimal Price);
+diff --git a/src/Services/Catalog/Catalog.Api/Contracts/ProductResponse.cs b/src/Services/Catalog/Catalog.Api/Contracts/ProductResponse.cs
+new file mode 100644
+index 0000000..b6f6000
+--- /dev/null
++++ b/src/Services/Catalog/Catalog.Api/Contracts/ProductResponse.cs
+@@ -0,0 +1,3 @@
++namespace Catalog.Api.Contracts;
++
++public record ProductResponse(Guid Id, Guid CategoryId, string Sku, string Name, string Description, decimal Price);
+diff --git a/src/Services/Catalog/Catalog.Api/Contracts/UpdateCategoryRequest.cs b/src/Services/Catalog/Catalog.Api/Contracts/UpdateCategoryRequest.cs
+new file mode 100644
+index 0000000..ec40391
+--- /dev/null
++++ b/src/Services/Catalog/Catalog.Api/Contracts/UpdateCategoryRequest.cs
+@@ -0,0 +1,3 @@
++namespace Catalog.Api.Contracts;
++
++public record UpdateCategoryRequest(string Name, string Description);
+diff --git a/src/Services/Catalog/Catalog.Api/Contracts/UpdateProductRequest.cs b/src/Services/Catalog/Catalog.Api/Contracts/UpdateProductRequest.cs
+new file mode 100644
+index 0000000..18e1114
+--- /dev/null
++++ b/src/Services/Catalog/Catalog.Api/Contracts/UpdateProductRequest.cs
+@@ -0,0 +1,3 @@
++namespace Catalog.Api.Contracts;
++
++public record UpdateProductRequest(Guid CategoryId, string Name, string Description, decimal Price);
+diff --git a/src/Services/Catalog/Catalog.Api/Controllers/CategoriesController.cs b/src/Services/Catalog/Catalog.Api/Controllers/CategoriesController.cs
+new file mode 100644
+index 0000000..85ce51d
+--- /dev/null
++++ b/src/Services/Catalog/Catalog.Api/Controllers/CategoriesController.cs
+@@ -0,0 +1,62 @@
++using Catalog.Api.Contracts;
++using MediatR;
++using Microsoft.AspNetCore.Authorization;
++using Microsoft.AspNetCore.Mvc;
++using Microsoft.Identity.Web.Resource;
++using Telecube.BuildingBlocks.Common;
++
++namespace Catalog.Api.Controllers;
++
++[ApiController]
++[Route("api/categories")]
++public class CategoriesController(ISender sender) : ControllerBase
++{
++    // TODO: Return every category as a response list.
++    [HttpGet]
++    [AllowAnonymous]
++    public Task<IActionResult> GetAll(CancellationToken cancellationToken)
++    {
++        throw new NotImplementedException();
++    }
++
++    // TODO: Return the category with the given id, or the matching error response.
++    [HttpGet("{id:guid}")]
++    [AllowAnonymous]
++    public Task<IActionResult> GetById(Guid id, CancellationToken cancellationToken)
++    {
++        throw new NotImplementedException();
++    }
++
++    // TODO: Create the category from the request and return it, or the matching error response.
++    [HttpPost]
++    [Authorize]
++    [RequiredScope("Catalog.Write")]
++    public Task<IActionResult> Create(CreateCategoryRequest request, CancellationToken cancellationToken)
++    {
++        throw new NotImplementedException();
++    }
++
++    // TODO: Update the category with the given id from the request, or return the matching error response.
++    [HttpPut("{id:guid}")]
++    [Authorize]
++    [RequiredScope("Catalog.Write")]
++    public Task<IActionResult> Update(Guid id, UpdateCategoryRequest request, CancellationToken cancellationToken)
++    {
++        throw new NotImplementedException();
++    }
++
++    // TODO: Delete the category with the given id, or return the matching error response.
++    [HttpDelete("{id:guid}")]
++    [Authorize]
++    [RequiredScope("Catalog.Write")]
++    public Task<IActionResult> Delete(Guid id, CancellationToken cancellationToken)
++    {
++        throw new NotImplementedException();
++    }
++
++    // TODO: Turn an error into a problem response with the HTTP status that fits its type.
++    private IActionResult ToErrorResponse(Error error)
++    {
++        throw new NotImplementedException();
++    }
++}
+diff --git a/src/Services/Catalog/Catalog.Api/Controllers/ProductsController.cs b/src/Services/Catalog/Catalog.Api/Controllers/ProductsController.cs
+new file mode 100644
+index 0000000..e5d9b59
+--- /dev/null
++++ b/src/Services/Catalog/Catalog.Api/Controllers/ProductsController.cs
+@@ -0,0 +1,62 @@
++using Catalog.Api.Contracts;
++using MediatR;
++using Microsoft.AspNetCore.Authorization;
++using Microsoft.AspNetCore.Mvc;
++using Microsoft.Identity.Web.Resource;
++using Telecube.BuildingBlocks.Common;
++
++namespace Catalog.Api.Controllers;
++
++[ApiController]
++[Route("api/products")]
++public class ProductsController(ISender sender) : ControllerBase
++{
++    // TODO: Return every product as a response list.
++    [HttpGet]
++    [AllowAnonymous]
++    public Task<IActionResult> GetAll(CancellationToken cancellationToken)
++    {
++        throw new NotImplementedException();
++    }
++
++    // TODO: Return the product with the given id, or the matching error response.
++    [HttpGet("{id:guid}")]
++    [AllowAnonymous]
++    public Task<IActionResult> GetById(Guid id, CancellationToken cancellationToken)
++    {
++        throw new NotImplementedException();
++    }
++
++    // TODO: Create the product from the request and return it, or the matching error response.
++    [HttpPost]
++    [Authorize]
++    [RequiredScope("Catalog.Write")]
++    public Task<IActionResult> Create(CreateProductRequest request, CancellationToken cancellationToken)
++    {
++        throw new NotImplementedException();
++    }
++
++    // TODO: Update the product with the given id from the request, or return the matching error response.
++    [HttpPut("{id:guid}")]
++    [Authorize]
++    [RequiredScope("Catalog.Write")]
++    public Task<IActionResult> Update(Guid id, UpdateProductRequest request, CancellationToken cancellationToken)
++    {
++        throw new NotImplementedException();
++    }
++
++    // TODO: Delete the product with the given id, or return the matching error response.
++    [HttpDelete("{id:guid}")]
++    [Authorize]
++    [RequiredScope("Catalog.Write")]
++    public Task<IActionResult> Delete(Guid id, CancellationToken cancellationToken)
++    {
++        throw new NotImplementedException();
++    }
++
++    // TODO: Turn an error into a problem response with the HTTP status that fits its type.
++    private IActionResult ToErrorResponse(Error error)
++    {
++        throw new NotImplementedException();
++    }
++}
+diff --git a/src/Services/Catalog/Catalog.Api/Program.cs b/src/Services/Catalog/Catalog.Api/Program.cs
+new file mode 100644
+index 0000000..d7b1932
+--- /dev/null
++++ b/src/Services/Catalog/Catalog.Api/Program.cs
+@@ -0,0 +1,71 @@
++using Catalog.Application.Commands.CreateProduct;
++using Catalog.Infrastructure;
++using Microsoft.OpenApi.Models;
++using Telecube.BuildingBlocks.Messaging;
++using Telecube.BuildingBlocks.Web;
++using Telecube.Contracts;
++
++var builder = WebApplication.CreateBuilder(args);
++
++builder.Services.AddEntraAuthentication(builder.Configuration);
++builder.Services.AddAuthorization();
++builder.Services.AddDefaultProblemDetails();
++builder.Services.AddMessaging(builder.Configuration, cfg =>
++{
++    cfg.Message<ProductCreated>(x => x.SetEntityName("product-created"));
++    cfg.Message<ProductUpdated>(x => x.SetEntityName("product-updated"));
++    cfg.Message<ProductDeleted>(x => x.SetEntityName("product-deleted"));
++});
++builder.Services.AddCatalogInfrastructure(builder.Configuration);
++builder.Services.AddMediatR(cfg => cfg.RegisterServicesFromAssembly(typeof(CreateProductCommand).Assembly));
++
++builder.Services.AddControllers();
++builder.Services.AddEndpointsApiExplorer();
++
++// Entra External ID endpoints for this tenant, and the scope our API requires.
++var authority = $"{builder.Configuration["AzureAd:Instance"]}{builder.Configuration["AzureAd:TenantId"]}/oauth2/v2.0";
++var apiScope = $"api://{builder.Configuration["AzureAd:ClientId"]}/Catalog.Write";
++
++builder.Services.AddSwaggerGen(options =>
++{
++    // Describes the login method: authorization code flow against our tenant, asking for our API's scope.
++    options.AddSecurityDefinition("oauth2", new OpenApiSecurityScheme
++    {
++        Type = SecuritySchemeType.OAuth2,
++        Flows = new OpenApiOAuthFlows
++        {
++            AuthorizationCode = new OpenApiOAuthFlow
++            {
++                AuthorizationUrl = new Uri($"{authority}/authorize"),
++                TokenUrl = new Uri($"{authority}/token"),
++                Scopes = new Dictionary<string, string> { [apiScope] = "Create, update and delete catalog products" }
++            }
++        }
++    });
++
++    // Tells Swagger to attach the token (as a Bearer header) to every request.
++    options.AddSecurityRequirement(new OpenApiSecurityRequirement
++    {
++        [new OpenApiSecurityScheme { Reference = new OpenApiReference { Type = ReferenceType.SecurityScheme, Id = "oauth2" } }] = [apiScope]
++    });
++});
++
++var app = builder.Build();
++
++if (app.Environment.IsDevelopment())
++{
++    app.UseSwagger();
++    app.UseSwaggerUI(options =>
++    {
++        // Swagger acts as the client app registration; PKCE is required for SPA-type registrations.
++        options.OAuthClientId(builder.Configuration["Swagger:ClientId"]);
++        options.OAuthUsePkce();
++    });
++}
++
++app.UseAuthentication();
++app.UseAuthorization();
++
++app.MapControllers();
++
++app.Run();
+diff --git a/src/Services/Catalog/Catalog.Api/Properties/launchSettings.json b/src/Services/Catalog/Catalog.Api/Properties/launchSettings.json
+new file mode 100644
+index 0000000..82438e8
+--- /dev/null
++++ b/src/Services/Catalog/Catalog.Api/Properties/launchSettings.json
+@@ -0,0 +1,13 @@
++{
++  "profiles": {
++    "Catalog.Api": {
++      "commandName": "Project",
++      "launchBrowser": true,
++      "launchUrl": "swagger/index.html",
++      "environmentVariables": {
++        "ASPNETCORE_ENVIRONMENT": "Development"
++      },
++      "applicationUrl": "https://localhost:63246;http://localhost:63247"
++    }
++  }
++}
+diff --git a/src/Services/Catalog/Catalog.Api/appsettings.Development.json b/src/Services/Catalog/Catalog.Api/appsettings.Development.json
+new file mode 100644
+index 0000000..34b6a5d
+--- /dev/null
++++ b/src/Services/Catalog/Catalog.Api/appsettings.Development.json
+@@ -0,0 +1,14 @@
++{
++  "ConnectionStrings": {
++    "CatalogDb": "Server=(localdb)\\datapoint;Database=CatalogDB;Trusted_Connection=True;TrustServerCertificate=True;",
++    "ServiceBus": "Endpoint=sb://localhost;SharedAccessKeyName=RootManageSharedAccessKey;SharedAccessKey=SAS_KEY_VALUE;UseDevelopmentEmulator=true;"
++  },
++  "AzureAd": {
++    "Instance": "https://telecube01.ciamlogin.com/",
++    "TenantId": "83e6cccf-d91a-4104-a61b-f35fd756a634",
++    "ClientId": "2db4ae87-c978-4b71-a720-e65b48b1464e"
++  },
++  "Swagger": {
++    "ClientId": "ec6dfe7f-97ce-4064-85a2-1a1a8f1535d6"
++  }
++}
+diff --git a/src/Services/Catalog/Catalog.Api/appsettings.json b/src/Services/Catalog/Catalog.Api/appsettings.json
+new file mode 100644
+index 0000000..c840627
+--- /dev/null
++++ b/src/Services/Catalog/Catalog.Api/appsettings.json
+@@ -0,0 +1,10 @@
++{
++  "Logging": {
++    "LogLevel": {
++      "Default": "Information",
++      "Microsoft.AspNetCore": "Warning",
++      "MassTransit": "Debug"
++    }
++  },
++  "AllowedHosts": "*"
++}
+diff --git a/src/Services/Catalog/Catalog.Application/Abstractions/ICategoryRepository.cs b/src/Services/Catalog/Catalog.Application/Abstractions/ICategoryRepository.cs
+new file mode 100644
+index 0000000..2926584
+--- /dev/null
++++ b/src/Services/Catalog/Catalog.Application/Abstractions/ICategoryRepository.cs
+@@ -0,0 +1,14 @@
++using Catalog.Domain;
++
++namespace Catalog.Application.Abstractions;
++
++public interface ICategoryRepository
++{
++    Task<Category?> GetByIdAsync(Guid id, CancellationToken cancellationToken);
++    Task<Category?> GetByNameAsync(string name, CancellationToken cancellationToken);
++    Task<IReadOnlyList<Category>> GetAllAsync(CancellationToken cancellationToken);
++    Task<bool> HasProductsAsync(Guid id, CancellationToken cancellationToken);
++    Task AddAsync(Category category, CancellationToken cancellationToken);
++    Task UpdateAsync(Category category, CancellationToken cancellationToken);
++    Task DeleteAsync(Guid id, CancellationToken cancellationToken);
++}
+diff --git a/src/Services/Catalog/Catalog.Application/Abstractions/IIntegrationEventPublisher.cs b/src/Services/Catalog/Catalog.Application/Abstractions/IIntegrationEventPublisher.cs
+new file mode 100644
+index 0000000..46df72f
+--- /dev/null
++++ b/src/Services/Catalog/Catalog.Application/Abstractions/IIntegrationEventPublisher.cs
+@@ -0,0 +1,9 @@
++using Telecube.Contracts;
++
++namespace Catalog.Application.Abstractions;
++
++public interface IIntegrationEventPublisher
++{
++    Task PublishAsync<TEvent>(TEvent integrationEvent, CancellationToken cancellationToken)
++        where TEvent : class, IIntegrationEvent;
++}
+diff --git a/src/Services/Catalog/Catalog.Application/Abstractions/IProductRepository.cs b/src/Services/Catalog/Catalog.Application/Abstractions/IProductRepository.cs
+new file mode 100644
+index 0000000..6e676f9
+--- /dev/null
++++ b/src/Services/Catalog/Catalog.Application/Abstractions/IProductRepository.cs
+@@ -0,0 +1,13 @@
++using Catalog.Domain;
++
++namespace Catalog.Application.Abstractions;
++
++public interface IProductRepository
++{
++    Task<Product?> GetByIdAsync(Guid id, CancellationToken cancellationToken);
++    Task<Product?> GetBySkuAsync(string sku, CancellationToken cancellationToken);
++    Task<IReadOnlyList<Product>> GetAllAsync(CancellationToken cancellationToken);
++    Task AddAsync(Product product, CancellationToken cancellationToken);
++    Task UpdateAsync(Product product, CancellationToken cancellationToken);
++    Task DeleteAsync(Guid id, CancellationToken cancellationToken);
++}
+diff --git a/src/Services/Catalog/Catalog.Application/Catalog.Application.csproj b/src/Services/Catalog/Catalog.Application/Catalog.Application.csproj
+new file mode 100644
+index 0000000..ac8039d
+--- /dev/null
++++ b/src/Services/Catalog/Catalog.Application/Catalog.Application.csproj
+@@ -0,0 +1,18 @@
++<Project Sdk="Microsoft.NET.Sdk">
++
++  <PropertyGroup>
++    <TargetFramework>net10.0</TargetFramework>
++    <ImplicitUsings>enable</ImplicitUsings>
++    <Nullable>enable</Nullable>
++  </PropertyGroup>
++
++  <ItemGroup>
++    <PackageReference Include="MediatR" Version="12.4.1" />
++  </ItemGroup>
++
++  <ItemGroup>
++    <ProjectReference Include="..\..\..\BuildingBlocks\Telecube.Contracts\Telecube.Contracts.csproj" />
++    <ProjectReference Include="..\Catalog.Domain\Catalog.Domain.csproj" />
++  </ItemGroup>
++
++</Project>
+diff --git a/src/Services/Catalog/Catalog.Application/Commands/CreateCategory/CreateCategoryCommand.cs b/src/Services/Catalog/Catalog.Application/Commands/CreateCategory/CreateCategoryCommand.cs
+new file mode 100644
+index 0000000..3e944ff
+--- /dev/null
++++ b/src/Services/Catalog/Catalog.Application/Commands/CreateCategory/CreateCategoryCommand.cs
+@@ -0,0 +1,7 @@
++using Catalog.Domain;
++using MediatR;
++using Telecube.BuildingBlocks.Common;
++
++namespace Catalog.Application.Commands.CreateCategory;
++
++public record CreateCategoryCommand(string Name, string Description) : IRequest<Result<Category>>;
+diff --git a/src/Services/Catalog/Catalog.Application/Commands/CreateCategory/CreateCategoryCommandHandler.cs b/src/Services/Catalog/Catalog.Application/Commands/CreateCategory/CreateCategoryCommandHandler.cs
+new file mode 100644
+index 0000000..5cb9fc1
+--- /dev/null
++++ b/src/Services/Catalog/Catalog.Application/Commands/CreateCategory/CreateCategoryCommandHandler.cs
+@@ -0,0 +1,16 @@
++using Catalog.Application.Abstractions;
++using Catalog.Domain;
++using MediatR;
++using Telecube.BuildingBlocks.Common;
++
++namespace Catalog.Application.Commands.CreateCategory;
++
++public class CreateCategoryCommandHandler(ICategoryRepository categoryRepository)
++    : IRequestHandler<CreateCategoryCommand, Result<Category>>
++{
++    // TODO: Reject a duplicate category name as a conflict, otherwise create and save the category and return it.
++    public Task<Result<Category>> Handle(CreateCategoryCommand request, CancellationToken cancellationToken)
++    {
++        throw new NotImplementedException();
++    }
++}
+diff --git a/src/Services/Catalog/Catalog.Application/Commands/CreateProduct/CreateProductCommand.cs b/src/Services/Catalog/Catalog.Application/Commands/CreateProduct/CreateProductCommand.cs
+new file mode 100644
+index 0000000..4ba0733
+--- /dev/null
++++ b/src/Services/Catalog/Catalog.Application/Commands/CreateProduct/CreateProductCommand.cs
+@@ -0,0 +1,8 @@
++using Catalog.Domain;
++using MediatR;
++using Telecube.BuildingBlocks.Common;
++
++namespace Catalog.Application.Commands.CreateProduct;
++
++public record CreateProductCommand(Guid CategoryId, string Sku, string Name, string Description, decimal Price)
++    : IRequest<Result<Product>>;
+diff --git a/src/Services/Catalog/Catalog.Application/Commands/CreateProduct/CreateProductCommandHandler.cs b/src/Services/Catalog/Catalog.Application/Commands/CreateProduct/CreateProductCommandHandler.cs
+new file mode 100644
+index 0000000..89f6086
+--- /dev/null
++++ b/src/Services/Catalog/Catalog.Application/Commands/CreateProduct/CreateProductCommandHandler.cs
+@@ -0,0 +1,16 @@
++using Catalog.Application.Abstractions;
++using Catalog.Domain;
++using MediatR;
++using Telecube.BuildingBlocks.Common;
++
++namespace Catalog.Application.Commands.CreateProduct;
++
++public class CreateProductCommandHandler(IProductRepository productRepository, ICategoryRepository categoryRepository, IIntegrationEventPublisher integrationEventPublisher)
++    : IRequestHandler<CreateProductCommand, Result<Product>>
++{
++    // TODO: Reject an unknown category as not-found and a duplicate SKU as a conflict, otherwise create and save the product, publish ProductCreated, and return it.
++    public Task<Result<Product>> Handle(CreateProductCommand request, CancellationToken cancellationToken)
++    {
++        throw new NotImplementedException();
++    }
++}
+diff --git a/src/Services/Catalog/Catalog.Application/Commands/DeleteCategory/DeleteCategoryCommand.cs b/src/Services/Catalog/Catalog.Application/Commands/DeleteCategory/DeleteCategoryCommand.cs
+new file mode 100644
+index 0000000..628cabe
+--- /dev/null
++++ b/src/Services/Catalog/Catalog.Application/Commands/DeleteCategory/DeleteCategoryCommand.cs
+@@ -0,0 +1,6 @@
++using MediatR;
++using Telecube.BuildingBlocks.Common;
++
++namespace Catalog.Application.Commands.DeleteCategory;
++
++public record DeleteCategoryCommand(Guid Id) : IRequest<Result>;
+diff --git a/src/Services/Catalog/Catalog.Application/Commands/DeleteCategory/DeleteCategoryCommandHandler.cs b/src/Services/Catalog/Catalog.Application/Commands/DeleteCategory/DeleteCategoryCommandHandler.cs
+new file mode 100644
+index 0000000..e44e12b
+--- /dev/null
++++ b/src/Services/Catalog/Catalog.Application/Commands/DeleteCategory/DeleteCategoryCommandHandler.cs
+@@ -0,0 +1,15 @@
++using Catalog.Application.Abstractions;
++using MediatR;
++using Telecube.BuildingBlocks.Common;
++
++namespace Catalog.Application.Commands.DeleteCategory;
++
++public class DeleteCategoryCommandHandler(ICategoryRepository categoryRepository)
++    : IRequestHandler<DeleteCategoryCommand, Result>
++{
++    // TODO: Return not-found if the category is missing, a conflict if it still has products, otherwise delete it.
++    public Task<Result> Handle(DeleteCategoryCommand request, CancellationToken cancellationToken)
++    {
++        throw new NotImplementedException();
++    }
++}
+diff --git a/src/Services/Catalog/Catalog.Application/Commands/DeleteProduct/DeleteProductCommand.cs b/src/Services/Catalog/Catalog.Application/Commands/DeleteProduct/DeleteProductCommand.cs
+new file mode 100644
+index 0000000..cb7e898
+--- /dev/null
++++ b/src/Services/Catalog/Catalog.Application/Commands/DeleteProduct/DeleteProductCommand.cs
+@@ -0,0 +1,6 @@
++using MediatR;
++using Telecube.BuildingBlocks.Common;
++
++namespace Catalog.Application.Commands.DeleteProduct;
++
++public record DeleteProductCommand(Guid Id) : IRequest<Result>;
+diff --git a/src/Services/Catalog/Catalog.Application/Commands/DeleteProduct/DeleteProductCommandHandler.cs b/src/Services/Catalog/Catalog.Application/Commands/DeleteProduct/DeleteProductCommandHandler.cs
+new file mode 100644
+index 0000000..64fe711
+--- /dev/null
++++ b/src/Services/Catalog/Catalog.Application/Commands/DeleteProduct/DeleteProductCommandHandler.cs
+@@ -0,0 +1,15 @@
++using Catalog.Application.Abstractions;
++using MediatR;
++using Telecube.BuildingBlocks.Common;
++
++namespace Catalog.Application.Commands.DeleteProduct;
++
++public class DeleteProductCommandHandler(IProductRepository productRepository, IIntegrationEventPublisher integrationEventPublisher)
++    : IRequestHandler<DeleteProductCommand, Result>
++{
++    // TODO: Return not-found if the product is missing, otherwise delete it and publish ProductDeleted.
++    public Task<Result> Handle(DeleteProductCommand request, CancellationToken cancellationToken)
++    {
++        throw new NotImplementedException();
++    }
++}
+diff --git a/src/Services/Catalog/Catalog.Application/Commands/UpdateCategory/UpdateCategoryCommand.cs b/src/Services/Catalog/Catalog.Application/Commands/UpdateCategory/UpdateCategoryCommand.cs
+new file mode 100644
+index 0000000..605f248
+--- /dev/null
++++ b/src/Services/Catalog/Catalog.Application/Commands/UpdateCategory/UpdateCategoryCommand.cs
+@@ -0,0 +1,6 @@
++using MediatR;
++using Telecube.BuildingBlocks.Common;
++
++namespace Catalog.Application.Commands.UpdateCategory;
++
++public record UpdateCategoryCommand(Guid Id, string Name, string Description) : IRequest<Result>;
+diff --git a/src/Services/Catalog/Catalog.Application/Commands/UpdateCategory/UpdateCategoryCommandHandler.cs b/src/Services/Catalog/Catalog.Application/Commands/UpdateCategory/UpdateCategoryCommandHandler.cs
+new file mode 100644
+index 0000000..8eaf52c
+--- /dev/null
++++ b/src/Services/Catalog/Catalog.Application/Commands/UpdateCategory/UpdateCategoryCommandHandler.cs
+@@ -0,0 +1,15 @@
++using Catalog.Application.Abstractions;
++using MediatR;
++using Telecube.BuildingBlocks.Common;
++
++namespace Catalog.Application.Commands.UpdateCategory;
++
++public class UpdateCategoryCommandHandler(ICategoryRepository categoryRepository)
++    : IRequestHandler<UpdateCategoryCommand, Result>
++{
++    // TODO: Return not-found if the category is missing, otherwise apply the changes and save them.
++    public Task<Result> Handle(UpdateCategoryCommand request, CancellationToken cancellationToken)
++    {
++        throw new NotImplementedException();
++    }
++}
+diff --git a/src/Services/Catalog/Catalog.Application/Commands/UpdateProduct/UpdateProductCommand.cs b/src/Services/Catalog/Catalog.Application/Commands/UpdateProduct/UpdateProductCommand.cs
+new file mode 100644
+index 0000000..2aa8056
+--- /dev/null
++++ b/src/Services/Catalog/Catalog.Application/Commands/UpdateProduct/UpdateProductCommand.cs
+@@ -0,0 +1,7 @@
++using MediatR;
++using Telecube.BuildingBlocks.Common;
++
++namespace Catalog.Application.Commands.UpdateProduct;
++
++public record UpdateProductCommand(Guid Id, Guid CategoryId, string Name, string Description, decimal Price)
++    : IRequest<Result>;
+diff --git a/src/Services/Catalog/Catalog.Application/Commands/UpdateProduct/UpdateProductCommandHandler.cs b/src/Services/Catalog/Catalog.Application/Commands/UpdateProduct/UpdateProductCommandHandler.cs
+new file mode 100644
+index 0000000..b3c7e75
+--- /dev/null
++++ b/src/Services/Catalog/Catalog.Application/Commands/UpdateProduct/UpdateProductCommandHandler.cs
+@@ -0,0 +1,15 @@
++using Catalog.Application.Abstractions;
++using MediatR;
++using Telecube.BuildingBlocks.Common;
++
++namespace Catalog.Application.Commands.UpdateProduct;
++
++public class UpdateProductCommandHandler(IProductRepository productRepository, ICategoryRepository categoryRepository, IIntegrationEventPublisher integrationEventPublisher)
++    : IRequestHandler<UpdateProductCommand, Result>
++{
++    // TODO: Return not-found if the product or category is missing, otherwise apply the changes, save them, and publish ProductUpdated.
++    public Task<Result> Handle(UpdateProductCommand request, CancellationToken cancellationToken)
++    {
++        throw new NotImplementedException();
++    }
++}
+diff --git a/src/Services/Catalog/Catalog.Application/Queries/GetCategories/GetCategoriesQuery.cs b/src/Services/Catalog/Catalog.Application/Queries/GetCategories/GetCategoriesQuery.cs
+new file mode 100644
+index 0000000..4c37f04
+--- /dev/null
++++ b/src/Services/Catalog/Catalog.Application/Queries/GetCategories/GetCategoriesQuery.cs
+@@ -0,0 +1,6 @@
++using Catalog.Domain;
++using MediatR;
++
++namespace Catalog.Application.Queries.GetCategories;
++
++public record GetCategoriesQuery : IRequest<IReadOnlyList<Category>>;
+diff --git a/src/Services/Catalog/Catalog.Application/Queries/GetCategories/GetCategoriesQueryHandler.cs b/src/Services/Catalog/Catalog.Application/Queries/GetCategories/GetCategoriesQueryHandler.cs
+new file mode 100644
+index 0000000..16407ea
+--- /dev/null
++++ b/src/Services/Catalog/Catalog.Application/Queries/GetCategories/GetCategoriesQueryHandler.cs
+@@ -0,0 +1,15 @@
++using Catalog.Application.Abstractions;
++using Catalog.Domain;
++using MediatR;
++
++namespace Catalog.Application.Queries.GetCategories;
++
++public class GetCategoriesQueryHandler(ICategoryRepository categoryRepository)
++    : IRequestHandler<GetCategoriesQuery, IReadOnlyList<Category>>
++{
++    // TODO: Return every category in the catalog.
++    public Task<IReadOnlyList<Category>> Handle(GetCategoriesQuery request, CancellationToken cancellationToken)
++    {
++        throw new NotImplementedException();
++    }
++}
+diff --git a/src/Services/Catalog/Catalog.Application/Queries/GetCategoryById/GetCategoryByIdQuery.cs b/src/Services/Catalog/Catalog.Application/Queries/GetCategoryById/GetCategoryByIdQuery.cs
+new file mode 100644
+index 0000000..88c98ff
+--- /dev/null
++++ b/src/Services/Catalog/Catalog.Application/Queries/GetCategoryById/GetCategoryByIdQuery.cs
+@@ -0,0 +1,7 @@
++using Catalog.Domain;
++using MediatR;
++using Telecube.BuildingBlocks.Common;
++
++namespace Catalog.Application.Queries.GetCategoryById;
++
++public record GetCategoryByIdQuery(Guid Id) : IRequest<Result<Category>>;
+diff --git a/src/Services/Catalog/Catalog.Application/Queries/GetCategoryById/GetCategoryByIdQueryHandler.cs b/src/Services/Catalog/Catalog.Application/Queries/GetCategoryById/GetCategoryByIdQueryHandler.cs
+new file mode 100644
+index 0000000..b99163b
+--- /dev/null
++++ b/src/Services/Catalog/Catalog.Application/Queries/GetCategoryById/GetCategoryByIdQueryHandler.cs
+@@ -0,0 +1,16 @@
++using Catalog.Application.Abstractions;
++using Catalog.Domain;
++using MediatR;
++using Telecube.BuildingBlocks.Common;
++
++namespace Catalog.Application.Queries.GetCategoryById;
++
++public class GetCategoryByIdQueryHandler(ICategoryRepository categoryRepository)
++    : IRequestHandler<GetCategoryByIdQuery, Result<Category>>
++{
++    // TODO: Return the category with the given id, or not-found if there is none.
++    public Task<Result<Category>> Handle(GetCategoryByIdQuery request, CancellationToken cancellationToken)
++    {
++        throw new NotImplementedException();
++    }
++}
+diff --git a/src/Services/Catalog/Catalog.Application/Queries/GetProductById/GetProductByIdQuery.cs b/src/Services/Catalog/Catalog.Application/Queries/GetProductById/GetProductByIdQuery.cs
+new file mode 100644
+index 0000000..9a5e553
+--- /dev/null
++++ b/src/Services/Catalog/Catalog.Application/Queries/GetProductById/GetProductByIdQuery.cs
+@@ -0,0 +1,7 @@
++using Catalog.Domain;
++using MediatR;
++using Telecube.BuildingBlocks.Common;
++
++namespace Catalog.Application.Queries.GetProductById;
++
++public record GetProductByIdQuery(Guid Id) : IRequest<Result<Product>>;
+diff --git a/src/Services/Catalog/Catalog.Application/Queries/GetProductById/GetProductByIdQueryHandler.cs b/src/Services/Catalog/Catalog.Application/Queries/GetProductById/GetProductByIdQueryHandler.cs
+new file mode 100644
+index 0000000..ae9dcdd
+--- /dev/null
++++ b/src/Services/Catalog/Catalog.Application/Queries/GetProductById/GetProductByIdQueryHandler.cs
+@@ -0,0 +1,16 @@
++using Catalog.Application.Abstractions;
++using Catalog.Domain;
++using MediatR;
++using Telecube.BuildingBlocks.Common;
++
++namespace Catalog.Application.Queries.GetProductById;
++
++public class GetProductByIdQueryHandler(IProductRepository productRepository)
++    : IRequestHandler<GetProductByIdQuery, Result<Product>>
++{
++    // TODO: Return the product with the given id, or not-found if there is none.
++    public Task<Result<Product>> Handle(GetProductByIdQuery request, CancellationToken cancellationToken)
++    {
++        throw new NotImplementedException();
++    }
++}
+diff --git a/src/Services/Catalog/Catalog.Application/Queries/GetProducts/GetProductsQuery.cs b/src/Services/Catalog/Catalog.Application/Queries/GetProducts/GetProductsQuery.cs
+new file mode 100644
+index 0000000..51a7df4
+--- /dev/null
++++ b/src/Services/Catalog/Catalog.Application/Queries/GetProducts/GetProductsQuery.cs
+@@ -0,0 +1,6 @@
++using Catalog.Domain;
++using MediatR;
++
++namespace Catalog.Application.Queries.GetProducts;
++
++public record GetProductsQuery : IRequest<IReadOnlyList<Product>>;
+diff --git a/src/Services/Catalog/Catalog.Application/Queries/GetProducts/GetProductsQueryHandler.cs b/src/Services/Catalog/Catalog.Application/Queries/GetProducts/GetProductsQueryHandler.cs
+new file mode 100644
+index 0000000..d449e6e
+--- /dev/null
++++ b/src/Services/Catalog/Catalog.Application/Queries/GetProducts/GetProductsQueryHandler.cs
+@@ -0,0 +1,15 @@
++using Catalog.Application.Abstractions;
++using Catalog.Domain;
++using MediatR;
++
++namespace Catalog.Application.Queries.GetProducts;
++
++public class GetProductsQueryHandler(IProductRepository productRepository)
++    : IRequestHandler<GetProductsQuery, IReadOnlyList<Product>>
++{
++    // TODO: Return every product in the catalog.
++    public Task<IReadOnlyList<Product>> Handle(GetProductsQuery request, CancellationToken cancellationToken)
++    {
++        throw new NotImplementedException();
++    }
++}
+diff --git a/src/Services/Catalog/Catalog.Domain/Catalog.Domain.csproj b/src/Services/Catalog/Catalog.Domain/Catalog.Domain.csproj
+new file mode 100644
+index 0000000..bc6b59e
+--- /dev/null
++++ b/src/Services/Catalog/Catalog.Domain/Catalog.Domain.csproj
+@@ -0,0 +1,13 @@
++<Project Sdk="Microsoft.NET.Sdk">
++
++  <PropertyGroup>
++    <TargetFramework>net10.0</TargetFramework>
++    <ImplicitUsings>enable</ImplicitUsings>
++    <Nullable>enable</Nullable>
++  </PropertyGroup>
++
++  <ItemGroup>
++    <ProjectReference Include="..\..\..\BuildingBlocks\Telecube.BuildingBlocks.Common\Telecube.BuildingBlocks.Common.csproj" />
++  </ItemGroup>
++
++</Project>
+diff --git a/src/Services/Catalog/Catalog.Domain/Category.cs b/src/Services/Catalog/Catalog.Domain/Category.cs
+new file mode 100644
+index 0000000..aa8598d
+--- /dev/null
++++ b/src/Services/Catalog/Catalog.Domain/Category.cs
+@@ -0,0 +1,23 @@
++using Telecube.BuildingBlocks.Common;
++
++namespace Catalog.Domain;
++
++public class Category : AggregateRoot
++{
++    public string Name { get; private set; } = null!;
++    public string Description { get; private set; } = null!;
++
++    private Category() { }
++
++    // TODO: Validate the inputs and return a new category with a fresh id, or a validation failure.
++    public static Result<Category> Create(string name, string description)
++    {
++        throw new NotImplementedException();
++    }
++
++    // TODO: Validate the inputs, change the category's name and description, and return success or a validation failure.
++    public Result Update(string name, string description)
++    {
++        throw new NotImplementedException();
++    }
++}
+diff --git a/src/Services/Catalog/Catalog.Domain/Product.cs b/src/Services/Catalog/Catalog.Domain/Product.cs
+new file mode 100644
+index 0000000..67923af
+--- /dev/null
++++ b/src/Services/Catalog/Catalog.Domain/Product.cs
+@@ -0,0 +1,26 @@
++using Telecube.BuildingBlocks.Common;
++
++namespace Catalog.Domain;
++
++public class Product : AggregateRoot
++{
++    public Guid CategoryId { get; private set; }
++    public string Sku { get; private set; } = null!;
++    public string Name { get; private set; } = null!;
++    public string Description { get; private set; } = null!;
++    public decimal Price { get; private set; }
++
++    private Product() { }
++
++    // TODO: Validate the inputs and return a new product with a fresh id, or a validation failure.
++    public static Result<Product> Create(Guid categoryId, string sku, string name, string description, decimal price)
++    {
++        throw new NotImplementedException();
++    }
++
++    // TODO: Validate the inputs, change the product's category, name, description and price, and return success or a validation failure.
++    public Result Update(Guid categoryId, string name, string description, decimal price)
++    {
++        throw new NotImplementedException();
++    }
++}
+diff --git a/src/Services/Catalog/Catalog.Infrastructure/Catalog.Infrastructure.csproj b/src/Services/Catalog/Catalog.Infrastructure/Catalog.Infrastructure.csproj
+new file mode 100644
+index 0000000..8240f60
+--- /dev/null
++++ b/src/Services/Catalog/Catalog.Infrastructure/Catalog.Infrastructure.csproj
+@@ -0,0 +1,21 @@
++<Project Sdk="Microsoft.NET.Sdk">
++
++  <PropertyGroup>
++    <TargetFramework>net10.0</TargetFramework>
++    <ImplicitUsings>enable</ImplicitUsings>
++    <Nullable>enable</Nullable>
++  </PropertyGroup>
++
++  <ItemGroup>
++    <PackageReference Include="Dapper" Version="2.1.66" />
++    <PackageReference Include="Microsoft.Data.SqlClient" Version="6.1.1" />
++    <PackageReference Include="Microsoft.Extensions.Configuration.Abstractions" Version="10.0.12" />
++  </ItemGroup>
++
++  <ItemGroup>
++    <ProjectReference Include="..\..\..\BuildingBlocks\Telecube.BuildingBlocks.Messaging\Telecube.BuildingBlocks.Messaging.csproj" />
++    <ProjectReference Include="..\Catalog.Application\Catalog.Application.csproj" />
++    <ProjectReference Include="..\..\..\BuildingBlocks\Telecube.Contracts\Telecube.Contracts.csproj" />
++  </ItemGroup>
++
++</Project>
+diff --git a/src/Services/Catalog/Catalog.Infrastructure/InfrastructureExtensions.cs b/src/Services/Catalog/Catalog.Infrastructure/InfrastructureExtensions.cs
+new file mode 100644
+index 0000000..35f8d95
+--- /dev/null
++++ b/src/Services/Catalog/Catalog.Infrastructure/InfrastructureExtensions.cs
+@@ -0,0 +1,23 @@
++using Catalog.Application.Abstractions;
++using Catalog.Infrastructure.Messaging;
++using Catalog.Infrastructure.Repositories;
++using Microsoft.Extensions.Configuration;
++using Microsoft.Extensions.DependencyInjection;
++
++namespace Catalog.Infrastructure;
++
++public static class InfrastructureExtensions
++{
++    public static IServiceCollection AddCatalogInfrastructure(this IServiceCollection services, IConfiguration configuration)
++    {
++        var connectionString = configuration.GetConnectionString("CatalogDb")
++            ?? throw new InvalidOperationException("Missing connection string 'CatalogDb'.");
++
++        services.AddSingleton<ISqlConnectionFactory>(new SqlConnectionFactory(connectionString));
++        services.AddScoped<IIntegrationEventPublisher, MassTransitIntegrationEventPublisher>();
++        services.AddScoped<IProductRepository, ProductRepository>();
++        services.AddScoped<ICategoryRepository, CategoryRepository>();
++
++        return services;
++    }
++}
+diff --git a/src/Services/Catalog/Catalog.Infrastructure/Messaging/MassTransitIntegrationEventPublisher.cs b/src/Services/Catalog/Catalog.Infrastructure/Messaging/MassTransitIntegrationEventPublisher.cs
+new file mode 100644
+index 0000000..b019e0d
+--- /dev/null
++++ b/src/Services/Catalog/Catalog.Infrastructure/Messaging/MassTransitIntegrationEventPublisher.cs
+@@ -0,0 +1,15 @@
++using Catalog.Application.Abstractions;
++using MassTransit;
++using Telecube.Contracts;
++
++namespace Catalog.Infrastructure.Messaging;
++
++public class MassTransitIntegrationEventPublisher(IPublishEndpoint publishEndpoint)
++    : IIntegrationEventPublisher
++{
++    public Task PublishAsync<TEvent>(TEvent integrationEvent, CancellationToken cancellationToken)
++        where TEvent : class, IIntegrationEvent
++    {
++        return publishEndpoint.Publish(integrationEvent, cancellationToken);
++    }
++}
+diff --git a/src/Services/Catalog/Catalog.Infrastructure/Repositories/CategoryRepository.cs b/src/Services/Catalog/Catalog.Infrastructure/Repositories/CategoryRepository.cs
+new file mode 100644
+index 0000000..977311a
+--- /dev/null
++++ b/src/Services/Catalog/Catalog.Infrastructure/Repositories/CategoryRepository.cs
+@@ -0,0 +1,49 @@
++using Catalog.Application.Abstractions;
++using Catalog.Domain;
++
++namespace Catalog.Infrastructure.Repositories;
++
++public sealed class CategoryRepository(ISqlConnectionFactory connectionFactory) : ICategoryRepository
++{
++    // TODO: Load the category row with the given id, or null if none exists.
++    public Task<Category?> GetByIdAsync(Guid id, CancellationToken cancellationToken)
++    {
++        throw new NotImplementedException();
++    }
++
++    // TODO: Load the category row with the given name, or null if none exists.
++    public Task<Category?> GetByNameAsync(string name, CancellationToken cancellationToken)
++    {
++        throw new NotImplementedException();
++    }
++
++    // TODO: Load every category row.
++    public Task<IReadOnlyList<Category>> GetAllAsync(CancellationToken cancellationToken)
++    {
++        throw new NotImplementedException();
++    }
++
++    // TODO: Report whether any product row belongs to the category with the given id.
++    public Task<bool> HasProductsAsync(Guid id, CancellationToken cancellationToken)
++    {
++        throw new NotImplementedException();
++    }
++
++    // TODO: Insert a new row for the category.
++    public Task AddAsync(Category category, CancellationToken cancellationToken)
++    {
++        throw new NotImplementedException();
++    }
++
++    // TODO: Save the category's name and description to its existing row.
++    public Task UpdateAsync(Category category, CancellationToken cancellationToken)
++    {
++        throw new NotImplementedException();
++    }
++
++    // TODO: Remove the row with the given id.
++    public Task DeleteAsync(Guid id, CancellationToken cancellationToken)
++    {
++        throw new NotImplementedException();
++    }
++}
+diff --git a/src/Services/Catalog/Catalog.Infrastructure/Repositories/ProductRepository.cs b/src/Services/Catalog/Catalog.Infrastructure/Repositories/ProductRepository.cs
+new file mode 100644
+index 0000000..f23a83c
+--- /dev/null
++++ b/src/Services/Catalog/Catalog.Infrastructure/Repositories/ProductRepository.cs
+@@ -0,0 +1,43 @@
++using Catalog.Application.Abstractions;
++using Catalog.Domain;
++
++namespace Catalog.Infrastructure.Repositories;
++
++public sealed class ProductRepository(ISqlConnectionFactory connectionFactory) : IProductRepository
++{
++    // TODO: Load the product row with the given id, or null if none exists.
++    public Task<Product?> GetByIdAsync(Guid id, CancellationToken cancellationToken)
++    {
++        throw new NotImplementedException();
++    }
++
++    // TODO: Load the product row with the given SKU, or null if none exists.
++    public Task<Product?> GetBySkuAsync(string sku, CancellationToken cancellationToken)
++    {
++        throw new NotImplementedException();
++    }
++
++    // TODO: Load every product row.
++    public Task<IReadOnlyList<Product>> GetAllAsync(CancellationToken cancellationToken)
++    {
++        throw new NotImplementedException();
++    }
++
++    // TODO: Insert a new row for the product.
++    public Task AddAsync(Product product, CancellationToken cancellationToken)
++    {
++        throw new NotImplementedException();
++    }
++
++    // TODO: Save the product's category, name, description and price to its existing row.
++    public Task UpdateAsync(Product product, CancellationToken cancellationToken)
++    {
++        throw new NotImplementedException();
++    }
++
++    // TODO: Remove the row with the given id.
++    public Task DeleteAsync(Guid id, CancellationToken cancellationToken)
++    {
++        throw new NotImplementedException();
++    }
++}
+diff --git a/src/Services/Catalog/Catalog.Infrastructure/Scripts/Category.sql b/src/Services/Catalog/Catalog.Infrastructure/Scripts/Category.sql
+new file mode 100644
+index 0000000..5a6d194
+--- /dev/null
++++ b/src/Services/Catalog/Catalog.Infrastructure/Scripts/Category.sql
+@@ -0,0 +1 @@
++-- TODO: Create the Category table with an id primary key, a unique name and a description column.
+diff --git a/src/Services/Catalog/Catalog.Infrastructure/Scripts/Product.sql b/src/Services/Catalog/Catalog.Infrastructure/Scripts/Product.sql
+new file mode 100644
+index 0000000..99a411c
+--- /dev/null
++++ b/src/Services/Catalog/Catalog.Infrastructure/Scripts/Product.sql
+@@ -0,0 +1 @@
++-- TODO: Create the Product table with an id primary key, a category id that must match an existing category, a unique SKU, name, description and price columns.
+diff --git a/src/Services/Catalog/Catalog.Infrastructure/SqlConnectionFactory.cs b/src/Services/Catalog/Catalog.Infrastructure/SqlConnectionFactory.cs
+new file mode 100644
+index 0000000..2fe533a
+--- /dev/null
++++ b/src/Services/Catalog/Catalog.Infrastructure/SqlConnectionFactory.cs
+@@ -0,0 +1,14 @@
++using System.Data;
++using Microsoft.Data.SqlClient;
++
++namespace Catalog.Infrastructure;
++
++public interface ISqlConnectionFactory
++{
++    IDbConnection CreateConnection();
++}
++
++public sealed class SqlConnectionFactory(string connectionString) : ISqlConnectionFactory
++{
++    public IDbConnection CreateConnection() => new SqlConnection(connectionString);
++}
+diff --git a/tests/Catalog.UnitTests/Application/CreateCategoryCommandHandlerTests.cs b/tests/Catalog.UnitTests/Application/CreateCategoryCommandHandlerTests.cs
+new file mode 100644
+index 0000000..cf2bbd4
+--- /dev/null
++++ b/tests/Catalog.UnitTests/Application/CreateCategoryCommandHandlerTests.cs
+@@ -0,0 +1,6 @@
++namespace Catalog.UnitTests.Application;
++
++// TODO: Cover the success, duplicate-name and invalid-input cases.
++public class CreateCategoryCommandHandlerTests
++{
++}
+diff --git a/tests/Catalog.UnitTests/Application/CreateProductCommandHandlerTests.cs b/tests/Catalog.UnitTests/Application/CreateProductCommandHandlerTests.cs
+new file mode 100644
+index 0000000..9b9f187
+--- /dev/null
++++ b/tests/Catalog.UnitTests/Application/CreateProductCommandHandlerTests.cs
+@@ -0,0 +1,6 @@
++namespace Catalog.UnitTests.Application;
++
++// TODO: Cover the success, unknown-category, duplicate-SKU, invalid-input and repository-failure cases, including whether ProductCreated is published.
++public class CreateProductCommandHandlerTests
++{
++}
+diff --git a/tests/Catalog.UnitTests/Application/DeleteCategoryCommandHandlerTests.cs b/tests/Catalog.UnitTests/Application/DeleteCategoryCommandHandlerTests.cs
+new file mode 100644
+index 0000000..b1e3d79
+--- /dev/null
++++ b/tests/Catalog.UnitTests/Application/DeleteCategoryCommandHandlerTests.cs
+@@ -0,0 +1,6 @@
++namespace Catalog.UnitTests.Application;
++
++// TODO: Cover the success, not-found and still-has-products cases.
++public class DeleteCategoryCommandHandlerTests
++{
++}
+diff --git a/tests/Catalog.UnitTests/Application/DeleteProductCommandHandlerTests.cs b/tests/Catalog.UnitTests/Application/DeleteProductCommandHandlerTests.cs
+new file mode 100644
+index 0000000..59fa061
+--- /dev/null
++++ b/tests/Catalog.UnitTests/Application/DeleteProductCommandHandlerTests.cs
+@@ -0,0 +1,6 @@
++namespace Catalog.UnitTests.Application;
++
++// TODO: Cover the success and not-found cases, including whether ProductDeleted is published.
++public class DeleteProductCommandHandlerTests
++{
++}
+diff --git a/tests/Catalog.UnitTests/Application/GetCategoriesQueryHandlerTests.cs b/tests/Catalog.UnitTests/Application/GetCategoriesQueryHandlerTests.cs
+new file mode 100644
+index 0000000..c304058
+--- /dev/null
++++ b/tests/Catalog.UnitTests/Application/GetCategoriesQueryHandlerTests.cs
+@@ -0,0 +1,6 @@
++namespace Catalog.UnitTests.Application;
++
++// TODO: Cover returning all categories and returning an empty list.
++public class GetCategoriesQueryHandlerTests
++{
++}
+diff --git a/tests/Catalog.UnitTests/Application/GetCategoryByIdQueryHandlerTests.cs b/tests/Catalog.UnitTests/Application/GetCategoryByIdQueryHandlerTests.cs
+new file mode 100644
+index 0000000..2f15dcd
+--- /dev/null
++++ b/tests/Catalog.UnitTests/Application/GetCategoryByIdQueryHandlerTests.cs
+@@ -0,0 +1,6 @@
++namespace Catalog.UnitTests.Application;
++
++// TODO: Cover the found and not-found cases.
++public class GetCategoryByIdQueryHandlerTests
++{
++}
+diff --git a/tests/Catalog.UnitTests/Application/GetProductByIdQueryHandlerTests.cs b/tests/Catalog.UnitTests/Application/GetProductByIdQueryHandlerTests.cs
+new file mode 100644
+index 0000000..3b2ce63
+--- /dev/null
++++ b/tests/Catalog.UnitTests/Application/GetProductByIdQueryHandlerTests.cs
+@@ -0,0 +1,6 @@
++namespace Catalog.UnitTests.Application;
++
++// TODO: Cover the found and not-found cases.
++public class GetProductByIdQueryHandlerTests
++{
++}
+diff --git a/tests/Catalog.UnitTests/Application/GetProductsQueryHandlerTests.cs b/tests/Catalog.UnitTests/Application/GetProductsQueryHandlerTests.cs
+new file mode 100644
+index 0000000..5b0c67a
+--- /dev/null
++++ b/tests/Catalog.UnitTests/Application/GetProductsQueryHandlerTests.cs
+@@ -0,0 +1,6 @@
++namespace Catalog.UnitTests.Application;
++
++// TODO: Cover returning all products and returning an empty list.
++public class GetProductsQueryHandlerTests
++{
++}
+diff --git a/tests/Catalog.UnitTests/Application/UpdateCategoryCommandHandlerTests.cs b/tests/Catalog.UnitTests/Application/UpdateCategoryCommandHandlerTests.cs
+new file mode 100644
+index 0000000..33ea65d
+--- /dev/null
++++ b/tests/Catalog.UnitTests/Application/UpdateCategoryCommandHandlerTests.cs
+@@ -0,0 +1,6 @@
++namespace Catalog.UnitTests.Application;
++
++// TODO: Cover the success and not-found cases.
++public class UpdateCategoryCommandHandlerTests
++{
++}
+diff --git a/tests/Catalog.UnitTests/Application/UpdateProductCommandHandlerTests.cs b/tests/Catalog.UnitTests/Application/UpdateProductCommandHandlerTests.cs
+new file mode 100644
+index 0000000..0ead361
+--- /dev/null
++++ b/tests/Catalog.UnitTests/Application/UpdateProductCommandHandlerTests.cs
+@@ -0,0 +1,6 @@
++namespace Catalog.UnitTests.Application;
++
++// TODO: Cover the success, product-not-found, category-not-found and save-failure cases, including whether ProductUpdated is published.
++public class UpdateProductCommandHandlerTests
++{
++}
+diff --git a/tests/Catalog.UnitTests/Catalog.UnitTests.csproj b/tests/Catalog.UnitTests/Catalog.UnitTests.csproj
+new file mode 100644
+index 0000000..a03895f
+--- /dev/null
++++ b/tests/Catalog.UnitTests/Catalog.UnitTests.csproj
+@@ -0,0 +1,17 @@
++<Project Sdk="Microsoft.NET.Sdk">
++
++  <PropertyGroup>
++    <TargetFramework>net10.0</TargetFramework>
++    <ImplicitUsings>enable</ImplicitUsings>
++    <Nullable>enable</Nullable>
++    <IsPackable>false</IsPackable>
++    <!-- Exit code 8 means "no tests ran". Remove this line once the first Catalog test exists. -->
++    <TestingPlatformCommandLineArguments>$(TestingPlatformCommandLineArguments) --ignore-exit-code 8</TestingPlatformCommandLineArguments>
++  </PropertyGroup>
++
++  <ItemGroup>
++    <ProjectReference Include="..\..\src\Services\Catalog\Catalog.Application\Catalog.Application.csproj" />
++    <ProjectReference Include="..\..\src\Services\Catalog\Catalog.Domain\Catalog.Domain.csproj" />
++  </ItemGroup>
++
++</Project>
+diff --git a/tests/Catalog.UnitTests/CategoryTests.cs b/tests/Catalog.UnitTests/CategoryTests.cs
+new file mode 100644
+index 0000000..3a12520
+--- /dev/null
++++ b/tests/Catalog.UnitTests/CategoryTests.cs
+@@ -0,0 +1,6 @@
++namespace Catalog.UnitTests;
++
++// TODO: Cover creating and updating a category, for both valid and invalid input.
++public class CategoryTests
++{
++}
+diff --git a/tests/Catalog.UnitTests/Fakers/ProductFaker.cs b/tests/Catalog.UnitTests/Fakers/ProductFaker.cs
+new file mode 100644
+index 0000000..1d0d0cd
+--- /dev/null
++++ b/tests/Catalog.UnitTests/Fakers/ProductFaker.cs
+@@ -0,0 +1,12 @@
++using Bogus;
++using Catalog.Domain;
++
++namespace Catalog.UnitTests.Fakers;
++
++public sealed class ProductFaker : Faker<Product>
++{
++    // TODO: Build each fake product through the product's own creation method using random valid values.
++    public ProductFaker()
++    {
++    }
++}
+diff --git a/tests/Catalog.UnitTests/ProductTests.cs b/tests/Catalog.UnitTests/ProductTests.cs
+new file mode 100644
+index 0000000..7751b13
+--- /dev/null
++++ b/tests/Catalog.UnitTests/ProductTests.cs
+@@ -0,0 +1,6 @@
++namespace Catalog.UnitTests;
++
++// TODO: Cover creating and updating a product, for both valid and invalid input.
++public class ProductTests
++{
++}

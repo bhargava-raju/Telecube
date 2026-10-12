@@ -1,1 +1,1 @@
--- TODO: Create the Product table with an id primary key, a unique SKU, name, description and price columns.
+-- TODO: Create the Product table with an id primary key, a category id that must match an existing category, a unique SKU, name, description and price columns.
