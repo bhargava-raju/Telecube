@@ -8,9 +8,21 @@ namespace Catalog.Application.Commands.CreateCategory;
 public class CreateCategoryCommandHandler(ICategoryRepository categoryRepository)
     : IRequestHandler<CreateCategoryCommand, Result<Category>>
 {
-    // TODO: Reject a duplicate category name as a conflict, otherwise create and save the category and return it.
-    public Task<Result<Category>> Handle(CreateCategoryCommand request, CancellationToken cancellationToken)
+    public async Task<Result<Category>> Handle(CreateCategoryCommand request, CancellationToken cancellationToken)
     {
-        throw new NotImplementedException();
+        var result = Category.Create(request.Name, request.Description);
+        if (result.IsFailure)
+        {
+            return Result<Category>.Failure(result.Error);
+        }
+
+        var existingCategory = await categoryRepository.GetByNameAsync(request.Name, cancellationToken);
+        if (existingCategory != null)
+        {
+            return Result<Category>.Failure(new Error("Conflict", $"Category with name {request.Name} already exists", ErrorType.Conflict));
+        }
+
+        await categoryRepository.AddAsync(result.Value, cancellationToken);
+        return Result<Category>.Success(result.Value);
     }
 }

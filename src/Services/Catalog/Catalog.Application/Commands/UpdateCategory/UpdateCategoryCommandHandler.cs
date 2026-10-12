@@ -7,9 +7,27 @@ namespace Catalog.Application.Commands.UpdateCategory;
 public class UpdateCategoryCommandHandler(ICategoryRepository categoryRepository)
     : IRequestHandler<UpdateCategoryCommand, Result>
 {
-    // TODO: Return not-found if the category is missing, otherwise apply the changes and save them.
-    public Task<Result> Handle(UpdateCategoryCommand request, CancellationToken cancellationToken)
+    public async Task<Result> Handle(UpdateCategoryCommand request, CancellationToken cancellationToken)
     {
-        throw new NotImplementedException();
+        var category = await categoryRepository.GetByIdAsync(request.Id, cancellationToken);
+        if (category == null)
+        {
+            return Result.Failure(new Error("NotFound", $"Category with id {request.Id} not found", ErrorType.NotFound));
+        }
+
+        var categoryWithSameName = await categoryRepository.GetByNameAsync(request.Name, cancellationToken);
+        if (categoryWithSameName != null && categoryWithSameName.Id != category.Id)
+        {
+            return Result.Failure(new Error("Conflict", $"Category with name {request.Name} already exists", ErrorType.Conflict));
+        }
+
+        var result = category.Update(request.Name, request.Description);
+        if (result.IsFailure)
+        {
+            return result;
+        }
+
+        await categoryRepository.UpdateAsync(category, cancellationToken);
+        return Result.Success();
     }
 }

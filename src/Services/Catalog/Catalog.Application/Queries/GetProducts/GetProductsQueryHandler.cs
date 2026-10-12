@@ -7,9 +7,9 @@ namespace Catalog.Application.Queries.GetProducts;
 public class GetProductsQueryHandler(IProductRepository productRepository)
     : IRequestHandler<GetProductsQuery, IReadOnlyList<Product>>
 {
-    // TODO: Return every product in the catalog.
-    public Task<IReadOnlyList<Product>> Handle(GetProductsQuery request, CancellationToken cancellationToken)
+    public async Task<IReadOnlyList<Product>> Handle(GetProductsQuery request, CancellationToken cancellationToken)
     {
-        throw new NotImplementedException();
+        var products = await productRepository.GetAllAsync(cancellationToken);
+        return products.ToList();
     }
 }

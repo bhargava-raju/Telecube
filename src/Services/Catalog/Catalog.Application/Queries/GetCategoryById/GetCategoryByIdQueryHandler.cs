@@ -8,9 +8,14 @@ namespace Catalog.Application.Queries.GetCategoryById;
 public class GetCategoryByIdQueryHandler(ICategoryRepository categoryRepository)
     : IRequestHandler<GetCategoryByIdQuery, Result<Category>>
 {
-    // TODO: Return the category with the given id, or not-found if there is none.
-    public Task<Result<Category>> Handle(GetCategoryByIdQuery request, CancellationToken cancellationToken)
+    public async Task<Result<Category>> Handle(GetCategoryByIdQuery request, CancellationToken cancellationToken)
     {
-        throw new NotImplementedException();
+        var category = await categoryRepository.GetByIdAsync(request.Id, cancellationToken);
+        if (category == null)
+        {
+            return Result<Category>.Failure(new Error("NotFound", $"Category with id {request.Id} not found", ErrorType.NotFound));
+        }
+
+        return Result<Category>.Success(category);
     }
 }

@@ -8,9 +8,14 @@ namespace Catalog.Application.Queries.GetProductById;
 public class GetProductByIdQueryHandler(IProductRepository productRepository)
     : IRequestHandler<GetProductByIdQuery, Result<Product>>
 {
-    // TODO: Return the product with the given id, or not-found if there is none.
-    public Task<Result<Product>> Handle(GetProductByIdQuery request, CancellationToken cancellationToken)
+    public async Task<Result<Product>> Handle(GetProductByIdQuery request, CancellationToken cancellationToken)
     {
-        throw new NotImplementedException();
+        var product = await productRepository.GetByIdAsync(request.Id, cancellationToken);
+        if (product == null)
+        {
+            return Result<Product>.Failure(new Error("NotFound", $"Product with id {request.Id} not found", ErrorType.NotFound));
+        }
+
+        return Result<Product>.Success(product);
     }
 }
