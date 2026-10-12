@@ -9,15 +9,47 @@ public class Category : AggregateRoot
 
     private Category() { }
 
-    // TODO: Validate the inputs and return a new category with a fresh id, or a validation failure.
     public static Result<Category> Create(string name, string description)
     {
-        throw new NotImplementedException();
+        var validationResult = Guard.AgainstNullOrEmpty(name, nameof(name));
+        if (!validationResult.IsSuccess)
+        {
+            return Result<Category>.Failure(validationResult.Error);
+        }
+
+        validationResult = Guard.AgainstNullOrEmpty(description, nameof(description));
+        if (!validationResult.IsSuccess)
+        {
+            return Result<Category>.Failure(validationResult.Error);
+        }
+
+        var category = new Category
+        {
+            Id = Guid.NewGuid(),
+            Name = name,
+            Description = description
+        };
+
+        return Result<Category>.Success(category);
     }
 
-    // TODO: Validate the inputs, change the category's name and description, and return success or a validation failure.
     public Result Update(string name, string description)
     {
-        throw new NotImplementedException();
+        var validationResult = Guard.AgainstNullOrEmpty(name, nameof(name));
+        if (!validationResult.IsSuccess)
+        {
+            return Result.Failure(validationResult.Error);
+        }
+
+        validationResult = Guard.AgainstNullOrEmpty(description, nameof(description));
+        if (!validationResult.IsSuccess)
+        {
+            return Result.Failure(validationResult.Error);
+        }
+
+        Name = name;
+        Description = description;
+
+        return Result.Success();
     }
 }

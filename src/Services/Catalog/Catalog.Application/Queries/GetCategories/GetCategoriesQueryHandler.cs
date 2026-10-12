@@ -1,15 +1,17 @@
 using Catalog.Application.Abstractions;
 using Catalog.Domain;
 using MediatR;
+using Telecube.BuildingBlocks.Common;
 
 namespace Catalog.Application.Queries.GetCategories;
 
 public class GetCategoriesQueryHandler(ICategoryRepository categoryRepository)
-    : IRequestHandler<GetCategoriesQuery, IReadOnlyList<Category>>
+    : IRequestHandler<GetCategoriesQuery, Result<IReadOnlyList<Category>>>
 {
     // TODO: Return every category in the catalog.
-    public Task<IReadOnlyList<Category>> Handle(GetCategoriesQuery request, CancellationToken cancellationToken)
+    public async Task<Result<IReadOnlyList<Category>>> Handle(GetCategoriesQuery request, CancellationToken cancellationToken)
     {
-        throw new NotImplementedException();
+        var categories = await categoryRepository.GetAllAsync(cancellationToken);
+        return Result<IReadOnlyList<Category>>.Success(categories);
     }
 }

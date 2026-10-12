@@ -1,49 +1,87 @@
 using Catalog.Application.Abstractions;
 using Catalog.Domain;
+using Dapper;
 
 namespace Catalog.Infrastructure.Repositories;
 
 public sealed class CategoryRepository(ISqlConnectionFactory connectionFactory) : ICategoryRepository
 {
-    // TODO: Load the category row with the given id, or null if none exists.
-    public Task<Category?> GetByIdAsync(Guid id, CancellationToken cancellationToken)
+    private const string SelectColumns = "SELECT Id, Name, Description FROM Category";
+
+    public async Task<Category?> GetByIdAsync(Guid id, CancellationToken cancellationToken)
     {
-        throw new NotImplementedException();
+        using var connection = connectionFactory.CreateConnection();
+        var parameters = new DynamicParameters();
+        parameters.Add("Id", id, System.Data.DbType.Guid);
+
+        return await connection.QuerySingleOrDefaultAsync<Category>(
+            new CommandDefinition($"{SelectColumns} WHERE Id = @Id", parameters, cancellationToken: cancellationToken));
     }
 
-    // TODO: Load the category row with the given name, or null if none exists.
-    public Task<Category?> GetByNameAsync(string name, CancellationToken cancellationToken)
+    public async Task<Category?> GetByNameAsync(string name, CancellationToken cancellationToken)
     {
-        throw new NotImplementedException();
+        using var connection = connectionFactory.CreateConnection();
+        var parameters = new DynamicParameters();
+        parameters.Add("Name", name, System.Data.DbType.String);
+
+        return await connection.QuerySingleOrDefaultAsync<Category>(
+            new CommandDefinition($"{SelectColumns} WHERE Name = @Name", parameters, cancellationToken: cancellationToken));
     }
 
-    // TODO: Load every category row.
-    public Task<IReadOnlyList<Category>> GetAllAsync(CancellationToken cancellationToken)
+    public async Task<IReadOnlyList<Category>> GetAllAsync(CancellationToken cancellationToken)
     {
-        throw new NotImplementedException();
+        using var connection = connectionFactory.CreateConnection();
+        var categories = await connection.QueryAsync<Category>(
+            new CommandDefinition($"{SelectColumns} ORDER BY Name", cancellationToken: cancellationToken));
+
+        return categories.ToList();
     }
 
-    // TODO: Report whether any product row belongs to the category with the given id.
-    public Task<bool> HasProductsAsync(Guid id, CancellationToken cancellationToken)
+    public async Task<bool> HasProductsAsync(Guid id, CancellationToken cancellationToken)
     {
-        throw new NotImplementedException();
+        using var connection = connectionFactory.CreateConnection();
+        var parameters = new DynamicParameters();
+        parameters.Add("Id", id, System.Data.DbType.Guid);
+
+        // T-SQL only allows EXISTS inside a condition, so turn it into a 1/0 bit that Dapper reads as bool.
+        return await connection.ExecuteScalarAsync<bool>(new CommandDefinition(
+            "SELECT CASE WHEN EXISTS (SELECT 1 FROM Product WHERE CategoryId = @Id) THEN CAST(1 AS BIT) ELSE CAST(0 AS BIT) END",
+            parameters, cancellationToken: cancellationToken));
     }
 
-    // TODO: Insert a new row for the category.
-    public Task AddAsync(Category category, CancellationToken cancellationToken)
+    public async Task AddAsync(Category category, CancellationToken cancellationToken)
     {
-        throw new NotImplementedException();
+        using var connection = connectionFactory.CreateConnection();
+        var parameters = new DynamicParameters();
+        parameters.Add("Id", category.Id, System.Data.DbType.Guid);
+        parameters.Add("Name", category.Name, System.Data.DbType.String);
+        parameters.Add("Description", category.Description, System.Data.DbType.String);
+
+        await connection.ExecuteAsync(new CommandDefinition(
+            "INSERT INTO Category (Id, Name, Description) VALUES (@Id, @Name, @Description)",
+            parameters, cancellationToken: cancellationToken));
     }
 
-    // TODO: Save the category's name and description to its existing row.
-    public Task UpdateAsync(Category category, CancellationToken cancellationToken)
+    public async Task UpdateAsync(Category category, CancellationToken cancellationToken)
     {
-        throw new NotImplementedException();
+        using var connection = connectionFactory.CreateConnection();
+        var parameters = new DynamicParameters();
+        parameters.Add("Id", category.Id, System.Data.DbType.Guid);
+        parameters.Add("Name", category.Name, System.Data.DbType.String);
+        parameters.Add("Description", category.Description, System.Data.DbType.String);
+
+        await connection.ExecuteAsync(new CommandDefinition(
+            "UPDATE Category SET Name = @Name, Description = @Description WHERE Id = @Id",
+            parameters, cancellationToken: cancellationToken));
     }
 
-    // TODO: Remove the row with the given id.
-    public Task DeleteAsync(Guid id, CancellationToken cancellationToken)
+    public async Task DeleteAsync(Guid id, CancellationToken cancellationToken)
     {
-        throw new NotImplementedException();
+        using var connection = connectionFactory.CreateConnection();
+        var parameters = new DynamicParameters();
+        parameters.Add("Id", id, System.Data.DbType.Guid);
+
+        await connection.ExecuteAsync(new CommandDefinition(
+            "DELETE FROM Category WHERE Id = @Id", parameters, cancellationToken: cancellationToken));
     }
 }

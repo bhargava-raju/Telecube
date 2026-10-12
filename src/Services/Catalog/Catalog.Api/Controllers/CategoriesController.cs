@@ -1,4 +1,9 @@
 using Catalog.Api.Contracts;
+using Catalog.Application.Commands.CreateCategory;
+using Catalog.Application.Commands.DeleteCategory;
+using Catalog.Application.Commands.UpdateCategory;
+using Catalog.Application.Queries.GetCategories;
+using Catalog.Application.Queries.GetCategoryById;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -11,52 +16,65 @@ namespace Catalog.Api.Controllers;
 [Route("api/categories")]
 public class CategoriesController(ISender sender) : ControllerBase
 {
-    // TODO: Return every category as a response list.
     [HttpGet]
     [AllowAnonymous]
-    public Task<IActionResult> GetAll(CancellationToken cancellationToken)
+    public async Task<IActionResult> GetAll(CancellationToken cancellationToken)
     {
-        throw new NotImplementedException();
+        var result = await sender.Send(new GetCategoriesQuery(), cancellationToken);
+        return result.Match(
+            onSuccess: categories => Ok(categories.Select(c => new CategoryResponse(c.Id, c.Name, c.Description))),
+            onFailure: ToErrorResponse);
     }
 
-    // TODO: Return the category with the given id, or the matching error response.
     [HttpGet("{id:guid}")]
     [AllowAnonymous]
-    public Task<IActionResult> GetById(Guid id, CancellationToken cancellationToken)
+    public async Task<IActionResult> GetById(Guid id, CancellationToken cancellationToken)
     {
-        throw new NotImplementedException();
+        var result = await sender.Send(new GetCategoryByIdQuery(id), cancellationToken);
+        return result.Match(
+            onSuccess: category => Ok(new CategoryResponse(category.Id, category.Name, category.Description)),
+            onFailure: ToErrorResponse);
     }
 
-    // TODO: Create the category from the request and return it, or the matching error response.
     [HttpPost]
     [Authorize]
     [RequiredScope("Catalog.Write")]
-    public Task<IActionResult> Create(CreateCategoryRequest request, CancellationToken cancellationToken)
+    public async Task<IActionResult> Create(CreateCategoryRequest request, CancellationToken cancellationToken)
     {
-        throw new NotImplementedException();
+        var result = await sender.Send(new CreateCategoryCommand(request.Name, request.Description), cancellationToken);
+        return result.Match(
+            onSuccess: category => CreatedAtAction(nameof(GetById), new { id = category.Id }, new CategoryResponse(category.Id, category.Name, category.Description)),
+            onFailure: ToErrorResponse);
     }
 
-    // TODO: Update the category with the given id from the request, or return the matching error response.
     [HttpPut("{id:guid}")]
     [Authorize]
     [RequiredScope("Catalog.Write")]
-    public Task<IActionResult> Update(Guid id, UpdateCategoryRequest request, CancellationToken cancellationToken)
+    public async Task<IActionResult> Update(Guid id, UpdateCategoryRequest request, CancellationToken cancellationToken)
     {
-        throw new NotImplementedException();
+        var result = await sender.Send(new UpdateCategoryCommand(id, request.Name, request.Description), cancellationToken);
+        return result.IsFailure ? ToErrorResponse(result.Error) : Ok();
     }
 
-    // TODO: Delete the category with the given id, or return the matching error response.
     [HttpDelete("{id:guid}")]
     [Authorize]
     [RequiredScope("Catalog.Write")]
-    public Task<IActionResult> Delete(Guid id, CancellationToken cancellationToken)
+    public async Task<IActionResult> Delete(Guid id, CancellationToken cancellationToken)
     {
-        throw new NotImplementedException();
+        var result = await sender.Send(new DeleteCategoryCommand(id), cancellationToken);
+        return result.IsFailure ? ToErrorResponse(result.Error) : Ok();
     }
 
-    // TODO: Turn an error into a problem response with the HTTP status that fits its type.
     private IActionResult ToErrorResponse(Error error)
     {
-        throw new NotImplementedException();
+        var statusCode = error.Type switch
+        {
+            ErrorType.NotFound => StatusCodes.Status404NotFound,
+            ErrorType.Validation => StatusCodes.Status400BadRequest,
+            ErrorType.Conflict => StatusCodes.Status409Conflict,
+            _ => StatusCodes.Status500InternalServerError
+        };
+
+        return Problem(title: error.Code, detail: error.Message, statusCode: statusCode);
     }
 }

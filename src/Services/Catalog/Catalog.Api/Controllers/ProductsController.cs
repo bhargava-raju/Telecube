@@ -1,4 +1,10 @@
 using Catalog.Api.Contracts;
+using Catalog.Application.Commands.CreateProduct;
+using Catalog.Application.Commands.DeleteProduct;
+using Catalog.Application.Commands.UpdateProduct;
+using Catalog.Application.Queries.GetProductById;
+using Catalog.Application.Queries.GetProducts;
+using Catalog.Domain;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -11,52 +17,68 @@ namespace Catalog.Api.Controllers;
 [Route("api/products")]
 public class ProductsController(ISender sender) : ControllerBase
 {
-    // TODO: Return every product as a response list.
     [HttpGet]
     [AllowAnonymous]
-    public Task<IActionResult> GetAll(CancellationToken cancellationToken)
+    public async Task<IActionResult> GetAll(CancellationToken cancellationToken)
     {
-        throw new NotImplementedException();
+        var products = await sender.Send(new GetProductsQuery(), cancellationToken);
+        return Ok(products.Select(ToResponse));
     }
 
-    // TODO: Return the product with the given id, or the matching error response.
     [HttpGet("{id:guid}")]
     [AllowAnonymous]
-    public Task<IActionResult> GetById(Guid id, CancellationToken cancellationToken)
+    public async Task<IActionResult> GetById(Guid id, CancellationToken cancellationToken)
     {
-        throw new NotImplementedException();
+        var result = await sender.Send(new GetProductByIdQuery(id), cancellationToken);
+        return result.Match(
+            onSuccess: product => Ok(ToResponse(product)),
+            onFailure: ToErrorResponse);
     }
 
-    // TODO: Create the product from the request and return it, or the matching error response.
     [HttpPost]
     [Authorize]
     [RequiredScope("Catalog.Write")]
-    public Task<IActionResult> Create(CreateProductRequest request, CancellationToken cancellationToken)
+    public async Task<IActionResult> Create(CreateProductRequest request, CancellationToken cancellationToken)
     {
-        throw new NotImplementedException();
+        var command = new CreateProductCommand(request.CategoryId, request.Sku, request.Name, request.Description, request.Price);
+        var result = await sender.Send(command, cancellationToken);
+        return result.Match(
+            onSuccess: product => CreatedAtAction(nameof(GetById), new { id = product.Id }, ToResponse(product)),
+            onFailure: ToErrorResponse);
     }
 
-    // TODO: Update the product with the given id from the request, or return the matching error response.
     [HttpPut("{id:guid}")]
     [Authorize]
     [RequiredScope("Catalog.Write")]
-    public Task<IActionResult> Update(Guid id, UpdateProductRequest request, CancellationToken cancellationToken)
+    public async Task<IActionResult> Update(Guid id, UpdateProductRequest request, CancellationToken cancellationToken)
     {
-        throw new NotImplementedException();
+        var command = new UpdateProductCommand(id, request.CategoryId, request.Name, request.Description, request.Price);
+        var result = await sender.Send(command, cancellationToken);
+        return result.IsFailure ? ToErrorResponse(result.Error) : Ok();
     }
 
-    // TODO: Delete the product with the given id, or return the matching error response.
     [HttpDelete("{id:guid}")]
     [Authorize]
     [RequiredScope("Catalog.Write")]
-    public Task<IActionResult> Delete(Guid id, CancellationToken cancellationToken)
+    public async Task<IActionResult> Delete(Guid id, CancellationToken cancellationToken)
     {
-        throw new NotImplementedException();
+        var result = await sender.Send(new DeleteProductCommand(id), cancellationToken);
+        return result.IsFailure ? ToErrorResponse(result.Error) : Ok();
     }
 
-    // TODO: Turn an error into a problem response with the HTTP status that fits its type.
+    private static ProductResponse ToResponse(Product product) =>
+        new(product.Id, product.CategoryId, product.Sku, product.Name, product.Description, product.Price);
+
     private IActionResult ToErrorResponse(Error error)
     {
-        throw new NotImplementedException();
+        var statusCode = error.Type switch
+        {
+            ErrorType.NotFound => StatusCodes.Status404NotFound,
+            ErrorType.Validation => StatusCodes.Status400BadRequest,
+            ErrorType.Conflict => StatusCodes.Status409Conflict,
+            _ => StatusCodes.Status500InternalServerError
+        };
+
+        return Problem(title: error.Code, detail: error.Message, statusCode: statusCode);
     }
 }
