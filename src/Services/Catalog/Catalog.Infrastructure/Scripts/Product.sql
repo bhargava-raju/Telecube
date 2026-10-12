@@ -1,0 +1,1 @@
+-- TODO: Create the Product table with an id primary key, a unique SKU, name, description and price columns.
