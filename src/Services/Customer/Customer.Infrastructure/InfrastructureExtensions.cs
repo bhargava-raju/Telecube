@@ -14,7 +14,7 @@ public static class InfrastructureExtensions
             ?? throw new InvalidOperationException("Missing connection string 'CustomerDb'.");
 
         services.AddSingleton<ISqlConnectionFactory>(new SqlConnectionFactory(connectionString));
-        services.AddSingleton<IIntegrationEventPublisher, MassTransitIntegrationEventPublisher>();
+        services.AddScoped<IIntegrationEventPublisher, MassTransitIntegrationEventPublisher>();
         services.AddScoped<ICustomerRepository, CustomerRepository>();
 
         return services;
