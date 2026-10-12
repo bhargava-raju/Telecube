@@ -6,7 +6,7 @@ namespace Catalog.Infrastructure.Repositories;
 
 public sealed class ProductRepository(ISqlConnectionFactory connectionFactory) : IProductRepository
 {
-    private const string SelectColumns = "SELECT Id, CategoryId, Sku, Name, Description, Price FROM Product";
+    private const string SelectColumns = "SELECT Id, CategoryId, Sku, DisplayName AS Name, DescriptionNote AS Description, Price FROM Product";
 
     public async Task<Product?> GetByIdAsync(Guid id, CancellationToken cancellationToken)
     {
@@ -47,7 +47,7 @@ public sealed class ProductRepository(ISqlConnectionFactory connectionFactory) :
         parameters.Add("Price", product.Price, System.Data.DbType.Decimal);
 
         await connection.ExecuteAsync(new CommandDefinition(
-            "INSERT INTO Product (Id, CategoryId, Sku, Name, Description, Price) VALUES (@Id, @CategoryId, @Sku, @Name, @Description, @Price)",
+            "INSERT INTO Product (Id, CategoryId, Sku, DisplayName, DescriptionNote, Price) VALUES (@Id, @CategoryId, @Sku, @Name, @Description, @Price)",
             parameters, cancellationToken: cancellationToken));
     }
 
@@ -62,7 +62,7 @@ public sealed class ProductRepository(ISqlConnectionFactory connectionFactory) :
         parameters.Add("Price", product.Price, System.Data.DbType.Decimal);
 
         await connection.ExecuteAsync(new CommandDefinition(
-            "UPDATE Product SET CategoryId = @CategoryId, Name = @Name, Description = @Description, Price = @Price WHERE Id = @Id",
+            "UPDATE Product SET CategoryId = @CategoryId, DisplayName = @Name, DescriptionNote = @Description, Price = @Price WHERE Id = @Id",
             parameters, cancellationToken: cancellationToken));
     }
 
