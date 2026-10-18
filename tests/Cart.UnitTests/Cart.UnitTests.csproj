@@ -1,0 +1,17 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <IsPackable>false</IsPackable>
+    <!-- Exit code 8 means "no tests ran". Remove this line once the first Cart test exists. -->
+    <TestingPlatformCommandLineArguments>$(TestingPlatformCommandLineArguments) --ignore-exit-code 8</TestingPlatformCommandLineArguments>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\Services\Cart\Cart.Application\Cart.Application.csproj" />
+    <ProjectReference Include="..\..\src\Services\Cart\Cart.Domain\Cart.Domain.csproj" />
+  </ItemGroup>
+
+</Project>

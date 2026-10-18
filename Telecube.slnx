@@ -7,6 +7,12 @@
     <Project Path="src/BuildingBlocks/Telecube.Contracts/Telecube.Contracts.csproj" />
   </Folder>
   <Folder Name="/Services/" />
+  <Folder Name="/Services/Cart/">
+    <Project Path="src/Services/Cart/Cart.Api/Cart.Api.csproj" />
+    <Project Path="src/Services/Cart/Cart.Application/Cart.Application.csproj" />
+    <Project Path="src/Services/Cart/Cart.Domain/Cart.Domain.csproj" />
+    <Project Path="src/Services/Cart/Cart.Infrastructure/Cart.Infrastructure.csproj" />
+  </Folder>
   <Folder Name="/Services/Catalog/">
     <Project Path="src/Services/Catalog/Catalog.Api/Catalog.Api.csproj" />
     <Project Path="src/Services/Catalog/Catalog.Application/Catalog.Application.csproj" />
@@ -19,9 +25,17 @@
     <Project Path="src/Services/Customer/Customer.Domain/Customer.Domain.csproj" />
     <Project Path="src/Services/Customer/Customer.Infrastructure/Customer.Infrastructure.csproj" />
   </Folder>
+  <Folder Name="/Services/Search/">
+    <Project Path="src/Services/Search/Search.Api/Search.Api.csproj" />
+    <Project Path="src/Services/Search/Search.Application/Search.Application.csproj" />
+    <Project Path="src/Services/Search/Search.Domain/Search.Domain.csproj" />
+    <Project Path="src/Services/Search/Search.Infrastructure/Search.Infrastructure.csproj" />
+  </Folder>
   <Folder Name="/tests/">
+    <Project Path="tests/Cart.UnitTests/Cart.UnitTests.csproj" />
     <Project Path="tests/Catalog.UnitTests/Catalog.UnitTests.csproj" />
     <Project Path="tests/Customer.UnitTests/Customer.UnitTests.csproj" />
+    <Project Path="tests/Search.UnitTests/Search.UnitTests.csproj" />
     <Project Path="tests/Telecube.ArchitectureTests/Telecube.ArchitectureTests.csproj" />
     <Project Path="tests/Telecube.BuildingBlocks.Common.UnitTests/Telecube.BuildingBlocks.Common.UnitTests.csproj" />
     <Project Path="tests/Telecube.Contracts.UnitTests/Telecube.Contracts.UnitTests.csproj" />

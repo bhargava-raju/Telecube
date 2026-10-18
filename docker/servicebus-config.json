@@ -35,6 +35,17 @@
             },
             "Subscriptions": [
               {
+                "Name": "search",
+                "Properties": {
+                  "DeadLetteringOnMessageExpiration": false,
+                  "DefaultMessageTimeToLive": "PT1H",
+                  "LockDuration": "PT1M",
+                  "MaxDeliveryCount": 10,
+                  "RequiresSession": false
+                },
+                "Rules": []
+              },
+              {
                 "Name": "product-created-test",
                 "Properties": {
                   "DeadLetteringOnMessageExpiration": false,
@@ -55,6 +66,17 @@
               "RequiresDuplicateDetection": false
             },
             "Subscriptions": [
+              {
+                "Name": "search",
+                "Properties": {
+                  "DeadLetteringOnMessageExpiration": false,
+                  "DefaultMessageTimeToLive": "PT1H",
+                  "LockDuration": "PT1M",
+                  "MaxDeliveryCount": 10,
+                  "RequiresSession": false
+                },
+                "Rules": []
+              },
               {
                 "Name": "product-updated-test",
                 "Properties": {
@@ -77,7 +99,39 @@
             },
             "Subscriptions": [
               {
+                "Name": "search",
+                "Properties": {
+                  "DeadLetteringOnMessageExpiration": false,
+                  "DefaultMessageTimeToLive": "PT1H",
+                  "LockDuration": "PT1M",
+                  "MaxDeliveryCount": 10,
+                  "RequiresSession": false
+                },
+                "Rules": []
+              },
+              {
                 "Name": "product-deleted-test",
+                "Properties": {
+                  "DeadLetteringOnMessageExpiration": false,
+                  "DefaultMessageTimeToLive": "PT1H",
+                  "LockDuration": "PT1M",
+                  "MaxDeliveryCount": 10,
+                  "RequiresSession": false
+                },
+                "Rules": []
+              }
+            ]
+          },
+          {
+            "Name": "checkout-requested",
+            "Properties": {
+              "DefaultMessageTimeToLive": "PT1H",
+              "DuplicateDetectionHistoryTimeWindow": "PT20S",
+              "RequiresDuplicateDetection": false
+            },
+            "Subscriptions": [
+              {
+                "Name": "checkout-requested-test",
                 "Properties": {
                   "DeadLetteringOnMessageExpiration": false,
                   "DefaultMessageTimeToLive": "PT1H",
