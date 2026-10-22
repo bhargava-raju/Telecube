@@ -7,9 +7,9 @@ namespace Search.Application.Commands.RemoveProduct;
 public class RemoveProductCommandHandler(IProductSearchIndex searchIndex)
     : IRequestHandler<RemoveProductCommand, Result>
 {
-    // TODO: Remove the product with the given id from the index and return success.
-    public Task<Result> Handle(RemoveProductCommand request, CancellationToken cancellationToken)
+    public async Task<Result> Handle(RemoveProductCommand request, CancellationToken cancellationToken)
     {
-        throw new NotImplementedException();
+        await searchIndex.DeleteAsync(request.ProductId, cancellationToken);
+        return Result.Success();
     }
 }
